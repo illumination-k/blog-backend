@@ -6,3 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.52"
+glob = "0.3.0"
+itertools = "0.10.3"
+lindera = "0.8.1"
+lindera-core = "0.8.1"
+lindera-tantivy = "0.8.1"
+pretty_env_logger = "0.4.0"
+pulldown-cmark = "0.9.0"
+serde = "1.0.133"
+serde_json = "1.0.74"
+structopt = "0.3.25"
+tantivy = "0.16.1"
+yaml-rust = "0.4.5"
+
+[dev-dependencies]
+
