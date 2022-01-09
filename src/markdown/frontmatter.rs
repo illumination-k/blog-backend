@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use itertools::Itertools;
 use yaml_rust::{Yaml, YamlLoader};
 
-use crate::utils::Lang;
+use crate::posts::Lang;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FrontMatter {
-    id: String,
+    uuid: String,
     title: String,
     description: String,
     lang: Lang,
@@ -15,8 +15,18 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
-    pub fn id(&self) -> String {
-        self.id.clone()
+    pub fn new<S: ToString>(uuid: S, title: S, description: S, category: S, lang: Lang, tags: Option<Vec<String>>) -> Self {
+        Self {
+            uuid: uuid.to_string(),
+            title: title.to_string(),
+            description: description.to_string(),
+            category: category.to_string(),
+            lang,
+            tags
+        }
+    }
+    pub fn uuid(&self) -> String {
+        self.uuid.clone()
     }
     pub fn title(&self) -> String {
         self.title.clone()
@@ -57,7 +67,7 @@ pub fn find_frontmatter_block(text: &str) -> Option<(usize, usize)> {
 pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let docs = YamlLoader::load_from_str(frontmatter)?;
     let doc = &docs[0];
-    let id = doc["id"].as_str().expect("Need Id").to_string();
+    let uuid = doc["id"].as_str().expect("Need Id").to_string();
     let title = doc["title"].as_str().expect("Need Title").to_string();
     let category = doc["category"].as_str().expect("Need Category").to_string();
     let description = doc["description"]
@@ -65,27 +75,24 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
         .expect("Need Description")
         .to_string();
 
-    let tags = match doc["tags"].as_vec() {
-        Some(t) => Some(
-            t.into_iter()
-                .map(|ss| match ss {
-                    Yaml::Integer(i) => i.to_string(),
-                    Yaml::String(s) => s.to_owned(),
-                    _ => panic!("Unsupported tag type. Tags must be intger or string"),
-                })
-                .collect_vec(),
-        ),
-        None => None,
-    };
+    let tags = doc["tags"].as_vec().map(|t| {
+        t.iter()
+            .map(|ss| match ss {
+                Yaml::Integer(i) => i.to_string(),
+                Yaml::String(s) => s.to_owned(),
+                _ => panic!("Unsupported tag type. Tags must be intger or string"),
+            })
+            .collect_vec()
+    });
 
     let lang = match &doc["lang"] {
         Yaml::BadValue => Lang::Ja,
-        Yaml::String(s) => Lang::from_str(&s)?,
+        Yaml::String(s) => Lang::from_str(s)?,
         _ => panic!("Unsupported lang type. Lang must be string"),
     };
 
     Ok(FrontMatter {
-        id,
+        uuid,
         title,
         description,
         category,
@@ -119,7 +126,7 @@ mod test {
 
         let (frontmatter, content) = split_frontmatter_and_content(test_string);
         let expect_frontmatter = FrontMatter {
-            id: "uuid".to_string(),
+            uuid: "uuid".to_string(),
             title: "Valid Yaml Test".to_string(),
             description: "Valid Yaml Description".to_string(),
             category: "Valid Yaml category".to_string(),

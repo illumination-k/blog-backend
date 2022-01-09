@@ -1,18 +1,28 @@
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::{anyhow, Result};
 use glob::glob;
 use itertools::Itertools;
 
-use tantivy::doc;
 use tantivy::schema::*;
+use tantivy::{doc, DateTime};
 
 use crate::markdown::{
     extract_text::extract_text,
     frontmatter::{split_frontmatter_and_content, FrontMatter},
     read_string,
 };
+
+fn need_field(s: &str) -> String {
+    format!("{} is need in schema", s)
+}
+
+pub fn get_field(field_name: &str, schema: &Schema) -> Field {
+    schema
+        .get_field(field_name)
+        .unwrap_or_else(|| panic!("{}", need_field(field_name)))
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Lang {
@@ -41,7 +51,7 @@ impl Lang {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Post {
     slug: String,
     matter: FrontMatter,
@@ -50,15 +60,25 @@ pub struct Post {
 }
 
 impl Post {
+    #[allow(dead_code)]
     pub fn lang(&self) -> &str {
         self.matter.lang()
     }
 
     pub fn uuid(&self) -> String {
-        self.matter.id()
+        self.matter.uuid()
     }
 
-    pub fn from_path(path: &PathBuf) -> Self {
+    #[allow(dead_code)]
+    pub fn body(&self) -> String {
+        self.body.clone()
+    }
+
+    pub fn title(&self) -> String {
+        self.matter.title()
+    }
+
+    pub fn from_path(path: &Path) -> Self {
         let slug = path
             .file_name()
             .map(rsplit_file_at_dot)
@@ -67,9 +87,10 @@ impl Post {
             .to_str()
             .unwrap()
             .to_string();
+
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
-        let raw_text = extract_text(&body);
+        let raw_text = extract_text(body);
         Self {
             slug,
             matter: frontmatter.unwrap(),
@@ -77,28 +98,67 @@ impl Post {
             raw_text,
         }
     }
-    pub fn to_doc(&self, schema: &Schema) -> Document {
-        fn need_field(s: &str) -> String {
-            format!("{} is need in schema", s)
+
+    pub fn from_doc(doc: &Document, schema: &Schema) -> Self {
+        fn get_text(doc: &Document, field_name: &str, schema: &Schema) -> String {
+            let field = get_field(field_name, schema);
+            doc.get_first(field).unwrap().text().unwrap().to_string()
         }
-        let uuid = schema.get_field("uuid").expect(&need_field("uuid"));
-        let slug = schema.get_field("slug").expect(&need_field("slug"));
-        let title = schema.get_field("title").expect(&need_field("title"));
-        let description = schema
-            .get_field("description")
-            .expect(&need_field("description"));
-        let body = schema.get_field("body").expect(&need_field("body"));
-        let lang = schema.get_field("lang").expect(&need_field("lang"));
-        let category = schema.get_field("category").expect(&need_field("category"));
-        let tags = schema.get_field("tags").expect(&need_field("tags"));
-        let raw_text = schema.get_field("raw_text").expect(&need_field("raw_text"));
+
+        let uuid = get_text(doc, "uuid", schema);
+        let slug = get_text(doc, "slug", schema);
+        let title = get_text(doc, "title", schema);
+        let description = get_text(doc, "description", schema);
+        let body = get_text(doc, "body", schema);
+        let lang = get_text(doc, "lang", schema);
+        let category = get_text(doc, "category", schema);
+        let tags = get_text(doc, "tags", schema);
+        let raw_text = get_text(doc, "raw_text", schema);
+        
+        let tags = if tags == "" {
+            None
+        } else {
+            Some(tags.split(" ").into_iter().map(|s| s.to_string()).collect_vec())
+        };
+
+        Self {
+            slug,
+            body,
+            raw_text,
+            matter: FrontMatter::new(
+                uuid,
+                title,
+                description,
+                category,
+                Lang::from_str(&lang).unwrap(),
+                tags,
+                
+            )
+        }
+    }
+
+    pub fn to_doc(
+        &self,
+        schema: &Schema,
+        created_at: &DateTime,
+        updated_at: &DateTime,
+    ) -> Document {
+        let uuid = get_field("uuid", schema);
+        let slug = get_field("slug", schema);
+        let title = get_field("title", schema);
+        let description = get_field("description", schema);
+        let body = get_field("body", schema);
+        let lang = get_field("lang", schema);
+        let category = get_field("category", schema);
+        let tags = get_field("tags", schema);
+        let raw_text = get_field("raw_text", schema);
 
         let tag_val = match self.matter.tags() {
             Some(tags) => tags.join(" "),
             None => "".to_string(),
         };
 
-        doc!(
+        let mut doc = doc!(
             uuid => self.uuid(),
             slug => self.slug.clone(),
             title => self.matter.title(),
@@ -108,7 +168,17 @@ impl Post {
             category => self.matter.category(),
             tags => tag_val,
             raw_text => self.raw_text.clone(),
-        )
+        );
+
+        doc.add_date(get_field("created_at", schema), created_at);
+        doc.add_date(get_field("updated_at", schema), updated_at);
+
+        doc
+    }
+
+    #[allow(dead_code)]
+    pub fn to_markdown(&self) {
+        unimplemented!()
     }
 }
 

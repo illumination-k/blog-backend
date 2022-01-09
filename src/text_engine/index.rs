@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 use lindera::tokenizer::TokenizerConfig;
 use lindera_core::viterbi::{Mode, Penalty};
@@ -12,9 +12,9 @@ use tantivy::tokenizer::RawTokenizer;
 use tantivy::tokenizer::TextAnalyzer;
 use tantivy::Result;
 
-use crate::utils::Lang;
+use crate::posts::Lang;
 
-pub fn build_index(schema: Schema, index_dir: &PathBuf) -> Result<Index> {
+pub fn build_index(schema: Schema, index_dir: &Path) -> Result<Index> {
     let tokenizer_name = Lang::Ja.tokenizer_name();
 
     let index = Index::create_in_dir(index_dir, schema)?;
@@ -36,7 +36,7 @@ pub fn build_index(schema: Schema, index_dir: &PathBuf) -> Result<Index> {
     Ok(index)
 }
 
-pub fn read_or_build_index(schema: Schema, index_dir: &PathBuf, rebuild: bool) -> Result<Index> {
+pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> Result<Index> {
     if index_dir.exists() {
         if rebuild {
             fs::remove_dir_all(index_dir)?;
