@@ -4,17 +4,83 @@
   },
   "segments": [
     {
-      "segment_id": "cd3ec0be-5599-4c4f-b531-223e41e16d15",
+      "segment_id": "f8e336e1-17c9-451d-97f1-799a000cb5e5",
       "max_doc": 1,
       "deletes": null
     },
     {
-      "segment_id": "d67394a2-299e-48f2-86d8-e4b551f96422",
+      "segment_id": "fb00f114-f790-4033-b8cd-3ce7123f5cb2",
       "max_doc": 1,
       "deletes": null
     }
   ],
   "schema": [
+    {
+      "name": "slug",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "body",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "tags",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "uuid",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "lang",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
     {
       "name": "title",
       "type": "text",
@@ -44,72 +110,6 @@
         "indexing": {
           "record": "position",
           "tokenizer": "lang_ja"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "id",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "slug",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "body",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "lang",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "category",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
-        },
-        "stored": true
-      }
-    },
-    {
-      "name": "tags",
-      "type": "text",
-      "options": {
-        "indexing": {
-          "record": "position",
-          "tokenizer": "default"
         },
         "stored": true
       }

@@ -7,6 +7,9 @@ use lindera_tantivy::tokenizer::LinderaTokenizer;
 use tantivy::schema::*;
 use tantivy::Index;
 
+use tantivy::tokenizer::LowerCaser;
+use tantivy::tokenizer::RawTokenizer;
+use tantivy::tokenizer::TextAnalyzer;
 use tantivy::Result;
 
 use crate::utils::Lang;
@@ -23,11 +26,12 @@ pub fn build_index(schema: Schema, index_dir: &PathBuf) -> Result<Index> {
         mode: Mode::Decompose(Penalty::default()),
     };
 
+    index.tokenizers().register("raw_tokenizer", RawTokenizer);
+
+    let ja_tokenizer =
+        TextAnalyzer::from(LinderaTokenizer::with_config(config).unwrap()).filter(LowerCaser);
     // register Lindera tokenizer
-    index.tokenizers().register(
-        &tokenizer_name,
-        LinderaTokenizer::with_config(config).unwrap(),
-    );
+    index.tokenizers().register(&tokenizer_name, ja_tokenizer);
 
     Ok(index)
 }

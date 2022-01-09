@@ -23,8 +23,8 @@ pub enum Lang {
 impl Lang {
     pub fn to_str(&self) -> &str {
         match self {
-            Ja => "ja",
-            En => "en",
+            Lang::Ja => "ja",
+            Lang::En => "en",
         }
     }
 
@@ -53,6 +53,11 @@ impl Post {
     pub fn lang(&self) -> &str {
         self.matter.lang()
     }
+
+    pub fn uuid(&self) -> String {
+        self.matter.id()
+    }
+
     pub fn from_path(path: &PathBuf) -> Self {
         let slug = path
             .file_name()
@@ -76,9 +81,12 @@ impl Post {
         fn need_field(s: &str) -> String {
             format!("{} is need in schema", s)
         }
-        let id = schema.get_field("id").expect(&need_field("id"));
+        let uuid = schema.get_field("uuid").expect(&need_field("uuid"));
         let slug = schema.get_field("slug").expect(&need_field("slug"));
         let title = schema.get_field("title").expect(&need_field("title"));
+        let description = schema
+            .get_field("description")
+            .expect(&need_field("description"));
         let body = schema.get_field("body").expect(&need_field("body"));
         let lang = schema.get_field("lang").expect(&need_field("lang"));
         let category = schema.get_field("category").expect(&need_field("category"));
@@ -91,9 +99,10 @@ impl Post {
         };
 
         doc!(
-            id => self.matter.id(),
+            uuid => self.uuid(),
             slug => self.slug.clone(),
             title => self.matter.title(),
+            description => self.matter.description(),
             body => self.body.clone(),
             lang => self.matter.lang(),
             category => self.matter.category(),
