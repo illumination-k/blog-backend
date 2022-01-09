@@ -1,5 +1,6 @@
 use anyhow::Result;
 use itertools::Itertools;
+use linked_hash_map::LinkedHashMap;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::posts::Lang;
@@ -15,14 +16,21 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
-    pub fn new<S: ToString>(uuid: S, title: S, description: S, category: S, lang: Lang, tags: Option<Vec<String>>) -> Self {
+    pub fn new<S: ToString>(
+        uuid: S,
+        title: S,
+        description: S,
+        category: S,
+        lang: Lang,
+        tags: Option<Vec<String>>,
+    ) -> Self {
         Self {
             uuid: uuid.to_string(),
             title: title.to_string(),
             description: description.to_string(),
             category: category.to_string(),
             lang,
-            tags
+            tags,
         }
     }
     pub fn uuid(&self) -> String {
@@ -40,12 +48,46 @@ impl FrontMatter {
         self.tags.clone()
     }
 
-    pub fn lang(&self) -> &str {
-        self.lang.to_str()
+    pub fn lang(&self) -> Lang {
+        self.lang.clone()
     }
 
     pub fn category(&self) -> String {
         self.category.clone()
+    }
+
+    pub fn to_yaml_with_date(&self, created_at: String, updated_at: String) -> Yaml {
+        let mut lm = LinkedHashMap::new();
+        lm.insert(Yaml::String("uuid".to_string()), Yaml::String(self.uuid()));
+        lm.insert(
+            Yaml::String("title".to_string()),
+            Yaml::String(self.title()),
+        );
+        lm.insert(
+            Yaml::String("description".to_string()),
+            Yaml::String(self.description()),
+        );
+        lm.insert(
+            Yaml::String("lang".to_string()),
+            Yaml::String(self.lang().as_str().to_string()),
+        );
+        lm.insert(
+            Yaml::String("category".to_string()),
+            Yaml::String(self.category()),
+        );
+        lm.insert(
+            Yaml::String("created_at".to_string()),
+            Yaml::String(created_at),
+        );
+        lm.insert(
+            Yaml::String("updated_at".to_string()),
+            Yaml::String(updated_at),
+        );
+        if let Some(tags) = self.tags() {
+            let tags = tags.into_iter().map(|tag| Yaml::String(tag)).collect_vec();
+            lm.insert(Yaml::String("tags".to_string()), Yaml::Array(tags));
+        }
+        Yaml::Hash(lm)
     }
 }
 
@@ -113,6 +155,9 @@ pub fn split_frontmatter_and_content(text: &str) -> (Option<FrontMatter>, &str) 
 
 #[cfg(test)]
 mod test {
+    use chrono::Utc;
+    use yaml_rust::YamlEmitter;
+
     use super::*;
     #[test]
     fn test_detect_frontmatter() {
@@ -139,10 +184,31 @@ mod test {
 
     #[test]
     fn test_frontmatter_tags() {
-        let test_string_tags = "---id: uuid\n\ntitle: Valid Yaml Test\ndescription: Valid Yaml Description\ncategory: Valid Yaml category\ntags:\n- '1'\n- '2'\n---\nsomething that's not yaml";
-        let test_int_tags = "---id: uuid\n\ntitle: Valid Yaml Test\ndescription: Valid Yaml Description\ncategory: Valid Yaml category\ntags:\n- 1\n- 2\n---\nsomething that's not yaml";
+        let test_string_tags = "---\nid: uuid\n\ntitle: Valid Yaml Test\ndescription: Valid Yaml Description\ncategory: Valid Yaml category\ntags:\n- '1'\n- '2'\n---\nsomething that's not yaml";
+        let test_int_tags = "---\nid: uuid\n\ntitle: Valid Yaml Test\ndescription: Valid Yaml Description\ncategory: Valid Yaml category\ntags:\n- 1\n- 2\n---\nsomething that's not yaml";
         let (string_frontmatter, _) = split_frontmatter_and_content(test_string_tags);
         let (int_frontmatter, _) = split_frontmatter_and_content(test_int_tags);
-        assert_eq!(string_frontmatter, int_frontmatter);
+        assert_eq!(
+            string_frontmatter.expect("error in string"),
+            int_frontmatter.expect("error in int")
+        );
+    }
+
+    #[test]
+    fn test_frontmatter_to_yaml() {
+        let test_string_tags = "---\nid: uuid\n\ntitle: Valid Yaml Test\ndescription: Valid Yaml Description\ncategory: Valid Yaml category\ntags:\n- '1'\n- '2'\n---\nsomething that's not yaml";
+        let (string_frontmatter, _) = split_frontmatter_and_content(test_string_tags);
+        dbg!(&string_frontmatter);
+        let mut out_str = String::new();
+        let mut emitter = YamlEmitter::new(&mut out_str);
+        emitter
+            .dump(
+                &string_frontmatter
+                    .unwrap()
+                    .to_yaml_with_date(Utc::now().to_rfc3339(), Utc::now().to_rfc3339()),
+            )
+            .unwrap();
+        out_str.push_str("---\n");
+        dbg!(&out_str);
     }
 }

@@ -1,11 +1,6 @@
-pub mod dump;
-pub mod extract_text;
-pub mod frontmatter;
-pub mod template;
-
 use std::{
     fs::File,
-    io::{BufReader, Read},
+    io::{BufReader, Read, BufWriter, Write},
     path::Path,
 };
 
@@ -21,12 +16,10 @@ pub fn read_string<P: AsRef<Path>>(p: P) -> Result<String> {
     Ok(buf)
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn not_found() {
-        let err = read_string("not_found.md");
-        dbg!(&err);
-    }
+pub fn write_string<P: AsRef<Path>>(p: &P, string: &str) -> Result<()> {
+    let file = File::create(&p).expect("File create error!");
+    let mut w = BufWriter::new(&file);
+    write!(w, "{}", string)?;
+    w.flush()?;
+    Ok(())
 }

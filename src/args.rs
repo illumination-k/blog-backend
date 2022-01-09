@@ -31,6 +31,8 @@ pub enum SubCommands {
         input: PathBuf,
         #[structopt(long = "index_dir")]
         index_dir: PathBuf,
+        #[structopt(long = "rebuild")]
+        rebuild: bool,
     },
 
     #[structopt(name = "run", about = "run server")]
@@ -40,4 +42,13 @@ pub enum SubCommands {
     #[structopt(name = "template", about = "template")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Template {},
+
+    #[structopt(name = "dump", about = "dump markdown from index with created_at and updated_at")]
+    #[structopt(setting(clap::AppSettings::ColoredHelp))]
+    Dump {
+        #[structopt(short = "-o", long = "outdir")]
+        outdir: PathBuf,
+        #[structopt(long = "index_dir")]
+        index_dir: PathBuf,
+    },
 }

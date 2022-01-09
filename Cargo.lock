@@ -413,6 +413,7 @@ dependencies = [
  "lindera",
  "lindera-core",
  "lindera-tantivy",
+ "linked-hash-map",
  "log",
  "pretty_env_logger",
  "pulldown-cmark",

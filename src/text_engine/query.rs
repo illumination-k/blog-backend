@@ -38,7 +38,7 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
     match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
             let uuid_field = index.schema().get_field("uuid").unwrap();
-            
+
             // if no update in post, skip update index
             if post == &Post::from_doc(&doc, &index.schema()) {
                 info!("skip post: {}", post.title());

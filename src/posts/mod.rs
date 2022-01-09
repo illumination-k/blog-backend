@@ -31,7 +31,7 @@ pub enum Lang {
 }
 
 impl Lang {
-    pub fn to_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         match self {
             Lang::Ja => "ja",
             Lang::En => "en",
@@ -47,7 +47,7 @@ impl Lang {
     }
 
     pub fn tokenizer_name(&self) -> String {
-        "lang_".to_string() + self.to_str()
+        "lang_".to_string() + self.as_str()
     }
 }
 
@@ -60,8 +60,12 @@ pub struct Post {
 }
 
 impl Post {
+    pub fn slug(&self) -> String {
+        self.slug.clone()
+    }
+
     #[allow(dead_code)]
-    pub fn lang(&self) -> &str {
+    pub fn lang(&self) -> Lang {
         self.matter.lang()
     }
 
@@ -76,6 +80,10 @@ impl Post {
 
     pub fn title(&self) -> String {
         self.matter.title()
+    }
+
+    pub fn matter(&self) -> FrontMatter {
+        self.matter.to_owned()
     }
 
     pub fn from_path(path: &Path) -> Self {
@@ -114,11 +122,16 @@ impl Post {
         let category = get_text(doc, "category", schema);
         let tags = get_text(doc, "tags", schema);
         let raw_text = get_text(doc, "raw_text", schema);
-        
+
         let tags = if tags == "" {
             None
         } else {
-            Some(tags.split(" ").into_iter().map(|s| s.to_string()).collect_vec())
+            Some(
+                tags.split(" ")
+                    .into_iter()
+                    .map(|s| s.to_string())
+                    .collect_vec(),
+            )
         };
 
         Self {
@@ -132,8 +145,7 @@ impl Post {
                 category,
                 Lang::from_str(&lang).unwrap(),
                 tags,
-                
-            )
+            ),
         }
     }
 
@@ -164,7 +176,7 @@ impl Post {
             title => self.matter.title(),
             description => self.matter.description(),
             body => self.body.clone(),
-            lang => self.matter.lang(),
+            lang => self.matter.lang().as_str(),
             category => self.matter.category(),
             tags => tag_val,
             raw_text => self.raw_text.clone(),
@@ -177,7 +189,7 @@ impl Post {
     }
 
     #[allow(dead_code)]
-    pub fn to_markdown(&self) {
+    pub fn to_markdown(&self, created_at: DateTime, updated_at: DateTime) {
         unimplemented!()
     }
 }
