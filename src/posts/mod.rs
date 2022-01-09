@@ -11,8 +11,9 @@ use tantivy::{doc, DateTime};
 use crate::markdown::{
     extract_text::extract_text,
     frontmatter::{split_frontmatter_and_content, FrontMatter},
-    read_string,
 };
+
+use crate::io::read_string;
 
 fn need_field(s: &str) -> String {
     format!("{} is need in schema", s)
@@ -186,11 +187,6 @@ impl Post {
         doc.add_date(get_field("updated_at", schema), updated_at);
 
         doc
-    }
-
-    #[allow(dead_code)]
-    pub fn to_markdown(&self, created_at: DateTime, updated_at: DateTime) {
-        unimplemented!()
     }
 }
 

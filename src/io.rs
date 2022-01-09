@@ -23,3 +23,13 @@ pub fn write_string<P: AsRef<Path>>(p: &P, string: &str) -> Result<()> {
     w.flush()?;
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn not_found() {
+        let err = read_string("not_found.md");
+        dbg!(&err);
+    }
+}

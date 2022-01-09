@@ -1,6 +1,4 @@
-use std::path::{Path, PathBuf};
-
-use crate::posts::{Post, Lang};
+use crate::posts::Post;
 use anyhow::Result;
 use tantivy::{schema::Schema, Document};
 use yaml_rust::YamlEmitter;
