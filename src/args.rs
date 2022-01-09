@@ -43,7 +43,10 @@ pub enum SubCommands {
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Template {},
 
-    #[structopt(name = "dump", about = "dump markdown from index with created_at and updated_at")]
+    #[structopt(
+        name = "dump",
+        about = "dump markdown from index with created_at and updated_at"
+    )]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Dump {
         #[structopt(short = "-o", long = "outdir")]

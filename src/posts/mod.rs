@@ -124,11 +124,11 @@ impl Post {
         let tags = get_text(doc, "tags", schema);
         let raw_text = get_text(doc, "raw_text", schema);
 
-        let tags = if tags == "" {
+        let tags = if tags.is_empty() {
             None
         } else {
             Some(
-                tags.split(" ")
+                tags.split(' ')
                     .into_iter()
                     .map(|s| s.to_string())
                     .collect_vec(),

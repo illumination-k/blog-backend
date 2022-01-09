@@ -84,7 +84,7 @@ impl FrontMatter {
             Yaml::String(updated_at),
         );
         if let Some(tags) = self.tags() {
-            let tags = tags.into_iter().map(|tag| Yaml::String(tag)).collect_vec();
+            let tags = tags.into_iter().map(Yaml::String).collect_vec();
             lm.insert(Yaml::String("tags".to_string()), Yaml::Array(tags));
         }
         Yaml::Hash(lm)

@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate log;
 
-mod io;
 mod args;
+mod io;
 mod markdown;
 mod posts;
 mod server;
@@ -10,12 +10,12 @@ mod text_engine;
 
 use anyhow::Result;
 use markdown::dump::dump_doc;
-use tantivy::Index;
-use tantivy::collector::{Count, TopDocs};
-use tantivy::query::AllQuery;
 use std::env::set_var;
 use std::fs;
 use structopt::StructOpt;
+use tantivy::collector::{Count, TopDocs};
+use tantivy::query::AllQuery;
+use tantivy::Index;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::markdown::template::template;
@@ -38,7 +38,11 @@ fn main() -> Result<()> {
     pretty_env_logger::init_timed();
 
     match &opt.subcommand {
-        SubCommands::Prep { input, index_dir, rebuild } => {
+        SubCommands::Prep {
+            input,
+            index_dir,
+            rebuild,
+        } => {
             info!("input: {:?} index_dir: {:?}", input, index_dir);
             let glob_pattern = format!("{}/**/*.md", input.as_path().to_str().unwrap());
             info!("glob_pattern: {}", glob_pattern);
@@ -64,7 +68,7 @@ fn main() -> Result<()> {
             println!("{}", template());
         }
 
-        SubCommands::Dump { outdir, index_dir} => {
+        SubCommands::Dump { outdir, index_dir } => {
             let index = Index::open_in_dir(index_dir)?;
             if !outdir.exists() {
                 fs::create_dir(outdir)?;

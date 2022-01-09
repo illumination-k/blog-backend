@@ -33,5 +33,5 @@ pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
     filename.push('/');
     filename.push_str(&post.slug());
     filename.push_str(".md");
-    Ok((filename,  out_str))
+    Ok((filename, out_str))
 }

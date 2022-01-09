@@ -17,8 +17,8 @@ pub fn extract_text(markdown_text: &str) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::markdown::frontmatter::split_frontmatter_and_content;
     use crate::io::read_string;
+    use crate::markdown::frontmatter::split_frontmatter_and_content;
 
     #[test]
     fn test_extract_text() {
