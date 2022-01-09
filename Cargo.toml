@@ -18,6 +18,7 @@ serde = "1.0.133"
 serde_json = "1.0.74"
 structopt = "0.3.25"
 tantivy = "0.16.1"
+uuid = "0.8.2"
 yaml-rust = "0.4.5"
 
 [dev-dependencies]

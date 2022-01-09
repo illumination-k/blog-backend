@@ -1,16 +1,45 @@
 use std::ffi::OsStr;
+use std::path::PathBuf;
 
-use anyhow::{Result, Context};
+use anyhow::{anyhow, Result};
 use glob::glob;
 use itertools::Itertools;
 
-use tantivy::schema::*;
 use tantivy::doc;
+use tantivy::schema::*;
 
 use crate::markdown::{
+    extract_text::extract_text,
     frontmatter::{split_frontmatter_and_content, FrontMatter},
-    read_string, extract_text::extract_text,
+    read_string,
 };
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Lang {
+    Ja,
+    En,
+}
+
+impl Lang {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Ja => "ja",
+            En => "en",
+        }
+    }
+
+    pub fn from_str(lang: &str) -> Result<Self> {
+        match lang.to_lowercase().as_str() {
+            "ja" => Ok(Lang::Ja),
+            "en" => Ok(Lang::En),
+            _ => Err(anyhow!("Now support ja and en only!")),
+        }
+    }
+
+    pub fn tokenizer_name(&self) -> String {
+        "lang_".to_string() + self.to_str()
+    }
+}
 
 #[derive(Debug)]
 pub struct Post {
@@ -21,29 +50,62 @@ pub struct Post {
 }
 
 impl Post {
-    pub fn to_doc(&self, schema: Schema) -> Document {
-        let slug = schema.get_field("slug").expect("id");
-        let title = schema.get_field("title").unwrap();
-        let body = schema.get_field("body").unwrap();
-        let lang = schema.get_field("lang").unwrap();
-        let category = schema.get_field("category").unwrap();
-        let tags = schema.get_field("tags").unwrap();
-        let raw_text = schema.get_field("raw_text").unwrap();
+    pub fn lang(&self) -> &str {
+        self.matter.lang()
+    }
+    pub fn from_path(path: &PathBuf) -> Self {
+        let slug = path
+            .file_name()
+            .map(rsplit_file_at_dot)
+            .and_then(|(before, after)| before.or(after))
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let markdown_text = read_string(&path).unwrap();
+        let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
+        let raw_text = extract_text(&body);
+        Self {
+            slug,
+            matter: frontmatter.unwrap(),
+            body: body.to_string(),
+            raw_text,
+        }
+    }
+    pub fn to_doc(&self, schema: &Schema) -> Document {
+        fn need_field(s: &str) -> String {
+            format!("{} is need in schema", s)
+        }
+        let id = schema.get_field("id").expect(&need_field("id"));
+        let slug = schema.get_field("slug").expect(&need_field("slug"));
+        let title = schema.get_field("title").expect(&need_field("title"));
+        let body = schema.get_field("body").expect(&need_field("body"));
+        let lang = schema.get_field("lang").expect(&need_field("lang"));
+        let category = schema.get_field("category").expect(&need_field("category"));
+        let tags = schema.get_field("tags").expect(&need_field("tags"));
+        let raw_text = schema.get_field("raw_text").expect(&need_field("raw_text"));
+
+        let tag_val = match self.matter.tags() {
+            Some(tags) => tags.join(" "),
+            None => "".to_string(),
+        };
 
         doc!(
+            id => self.matter.id(),
             slug => self.slug.clone(),
             title => self.matter.title(),
             body => self.body.clone(),
             lang => self.matter.lang(),
             category => self.matter.category(),
-            raw_text => self.raw_text.clone()
+            tags => tag_val,
+            raw_text => self.raw_text.clone(),
         )
     }
 }
 
 unsafe fn u8_slice_as_os_str(s: &[u8]) -> &OsStr {
     // SAFETY: see the comment of `os_str_as_u8_slice`
-    unsafe { &*(s as *const [u8] as *const OsStr) }
+    &*(s as *const [u8] as *const OsStr)
 }
 
 fn os_str_as_u8_slice(s: &OsStr) -> &[u8] {
@@ -66,7 +128,12 @@ fn rsplit_file_at_dot(file: &OsStr) -> (Option<&OsStr>, Option<&OsStr>) {
     if before == Some(b"") {
         (Some(file), None)
     } else {
-        unsafe { (before.map(|s| u8_slice_as_os_str(s)), after.map(|s| u8_slice_as_os_str(s))) }
+        unsafe {
+            (
+                before.map(|s| u8_slice_as_os_str(s)),
+                after.map(|s| u8_slice_as_os_str(s)),
+            )
+        }
     }
 }
 
@@ -75,16 +142,8 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<Post>> {
         .into_iter()
         .filter_map(|path| path.ok())
         .map(|path| {
-            let slug = path.file_name().map(rsplit_file_at_dot).and_then(|(before, after)| before.or(after)).unwrap().to_str().unwrap().to_string();
-            let markdown_text = read_string(&path).unwrap();
-            let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
-            let raw_text = extract_text(&body);
-            Post {
-                slug,
-                matter: frontmatter.unwrap(),
-                body: body.to_string(),
-                raw_text
-            }
+            // should be /path/to/filename.md
+            Post::from_path(&path)
         })
         .collect_vec();
 

@@ -1,0 +1,135 @@
+{
+  "index_settings": {
+    "docstore_compression": "lz4"
+  },
+  "segments": [
+    {
+      "segment_id": "cd3ec0be-5599-4c4f-b531-223e41e16d15",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "d67394a2-299e-48f2-86d8-e4b551f96422",
+      "max_doc": 1,
+      "deletes": null
+    }
+  ],
+  "schema": [
+    {
+      "name": "title",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "raw_text",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "id",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "slug",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "body",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "lang",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "tags",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "created_at",
+      "type": "date",
+      "options": {
+        "indexed": false,
+        "stored": true
+      }
+    },
+    {
+      "name": "updated_at",
+      "type": "date",
+      "options": {
+        "indexed": false,
+        "stored": true
+      }
+    }
+  ],
+  "opstamp": 6
+}

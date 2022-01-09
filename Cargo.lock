@@ -106,6 +106,7 @@ dependencies = [
  "serde_json",
  "structopt",
  "tantivy",
+ "uuid",
  "yaml-rust",
 ]
 
