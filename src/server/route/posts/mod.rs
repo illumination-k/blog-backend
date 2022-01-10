@@ -10,7 +10,7 @@ use tantivy::{
     Index, Term,
 };
 
-use crate::text_engine::query::get_all;
+use crate::text_engine::{query::get_all, schema::{PostField, FieldGetter}};
 
 #[derive(Debug, Deserialize)]
 pub struct GetPostsQueryParams {
@@ -23,18 +23,19 @@ pub struct GetPostsQueryParams {
 async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
     let schema = index.schema();
+    let fb = FieldGetter::new(schema);
     let params = web::Query::<GetPostsQueryParams>::from_query(req.query_string()).unwrap();
 
     let mut queries = vec![];
     if let Some(lang) = params.lang.to_owned() {
-        let lang_field = schema.get_field("lang").unwrap();
+        let lang_field = fb.get_field(PostField::Lang);
         let term = Term::from_field_text(lang_field, &lang);
         let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
         queries.push((Occur::Must, query));
     }
 
     if let Some(category) = params.category.to_owned() {
-        let category_field = schema.get_field("category").unwrap();
+        let category_field = fb.get_field(PostField::Category);
         let term = Term::from_field_text(category_field, &category);
         let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
 
@@ -42,7 +43,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     }
 
     if let Some(tag) = params.tag.to_owned() {
-        let tag_field = schema.get_field("tag").unwrap();
+        let tag_field = fb.get_field(PostField::Tags);
         let term = Term::from_field_text(tag_field, &tag);
         let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
 
