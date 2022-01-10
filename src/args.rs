@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use structopt::{clap, clap::arg_enum, StructOpt};
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "corrnet")]
+#[structopt(name = "smark")]
 #[structopt(long_version(option_env!("LONG_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"))))]
 #[structopt(setting(clap::AppSettings::ColoredHelp))]
 pub struct Opt {
@@ -24,7 +24,10 @@ arg_enum! {
 
 #[derive(Debug, StructOpt)]
 pub enum SubCommands {
-    #[structopt(name = "prep", about = "Preperation to run server from markdown")]
+    #[structopt(
+        name = "prep",
+        about = "Preperation to run server from markdown by indexing"
+    )]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Prep {
         #[structopt(short = "-i", long = "input")]
@@ -39,7 +42,7 @@ pub enum SubCommands {
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Run {},
 
-    #[structopt(name = "template", about = "template")]
+    #[structopt(name = "template", about = "stdout template")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Template {},
 

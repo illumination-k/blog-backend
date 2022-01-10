@@ -87,6 +87,19 @@ impl Post {
         self.matter.to_owned()
     }
 
+    /// **CAUSION!**  
+    /// This function do not return strict equal.
+    /// If updated_at and created_at in `self.matter` is `None`,
+    /// this function do not compare updated_at and created_at.  
+    /// It is useful when comparing the post from doc and
+    /// the post which has no updated_at and created_at field.  
+    pub fn equal_from_doc(&self, other: &Self) -> bool {
+        self.body == other.body
+            && self.slug == other.slug
+            && self.raw_text == other.raw_text
+            && self.matter.equal_matter_from_doc(&other.matter)
+    }
+
     pub fn from_path(path: &Path) -> Self {
         let slug = path
             .file_name()
@@ -114,6 +127,15 @@ impl Post {
             doc.get_first(field).unwrap().text().unwrap().to_string()
         }
 
+        fn get_date(doc: &Document, field_name: &str, schema: &Schema) -> DateTime {
+            let field = get_field(field_name, schema);
+            doc.get_first(field)
+                .unwrap()
+                .date_value()
+                .unwrap()
+                .to_owned()
+        }
+
         let uuid = get_text(doc, "uuid", schema);
         let slug = get_text(doc, "slug", schema);
         let title = get_text(doc, "title", schema);
@@ -123,6 +145,8 @@ impl Post {
         let category = get_text(doc, "category", schema);
         let tags = get_text(doc, "tags", schema);
         let raw_text = get_text(doc, "raw_text", schema);
+        let created_at = get_date(doc, "created_at", schema);
+        let updated_at = get_date(doc, "updated_at", schema);
 
         let tags = if tags.is_empty() {
             None
@@ -146,6 +170,8 @@ impl Post {
                 category,
                 Lang::from_str(&lang).unwrap(),
                 tags,
+                Some(created_at),
+                Some(updated_at),
             ),
         }
     }

@@ -45,8 +45,9 @@ impl SchemaConstructor {
 pub fn build_schema() -> Schema {
     let mut constructor = SchemaConstructor::new();
 
-    constructor.build_simple_text_fields(&["slug", "body", "tags"]);
-    constructor.build_custom_tokenizer_text_field("raw_tokenizer", &["uuid", "category", "lang"]);
+    constructor.build_simple_text_fields(&["body", "tags"]);
+    constructor
+        .build_custom_tokenizer_text_field("raw_tokenizer", &["uuid", "slug", "category", "lang"]);
     constructor.build_custom_tokenizer_text_field(
         &Lang::Ja.tokenizer_name(),
         &["title", "description", "raw_text"],
