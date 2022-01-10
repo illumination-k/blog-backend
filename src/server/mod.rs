@@ -1,5 +1,4 @@
 use actix_cors::Cors;
-use actix_files;
 use actix_web::{App, middleware, HttpServer};
 use anyhow::Result;
 
