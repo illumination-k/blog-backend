@@ -63,8 +63,12 @@ fn main() -> Result<()> {
             println!("term: {}\n{}", term, ja_schema.to_json(&doc));
         }
 
-        SubCommands::Run {} => {
-            server::main("8080".to_string())?;
+        SubCommands::Run {
+            port,
+            host,
+            index_dir,
+        } => {
+            server::main(host.to_owned(), port.to_string(), index_dir.to_owned())?;
         }
         SubCommands::Template {} => {
             println!("{}", template());

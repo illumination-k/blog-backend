@@ -40,7 +40,14 @@ pub enum SubCommands {
 
     #[structopt(name = "run", about = "run server")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
-    Run {},
+    Run {
+        #[structopt(short = "-p", long = "port", default_value = "8080")]
+        port: u32,
+        #[structopt(short = "-H", long = "host", default_value = "127.0.0.1")]
+        host: String,
+        #[structopt(long = "index_dir")]
+        index_dir: PathBuf,
+    },
 
     #[structopt(name = "template", about = "stdout template")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
