@@ -9,7 +9,7 @@ use tantivy::{
 
 use crate::posts::Post;
 
-pub fn get_all(query: &Box<dyn Query>, index: &Index) -> Result<Vec<Document>> {
+pub fn get_all(query: &dyn Query, index: &Index) -> Result<Vec<Document>> {
     let searcher = index.reader()?.searcher();
     let counter = Count {};
     let count = searcher.search(query, &counter)?;
@@ -45,16 +45,16 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
     term_query_one(uuid, field, index)
 }
 
-pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<()> {
+pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
     let now = Utc::now();
-    match get_by_uuid(&post.uuid(), index) {
+    let new_doc = match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
             let uuid_field = index.schema().get_field("uuid").unwrap();
 
             // if no update in post, skip update index
             if post.equal_from_doc(&Post::from_doc(&doc, &index.schema())) {
                 info!("skip post: {}", post.title());
-                return Ok(());
+                return Ok(None);
             }
 
             let created_at = if let Some(created_at) = post.matter().created_at() {
@@ -67,16 +67,32 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
                     .to_owned()
             };
 
+            let new_doc = post.to_doc(&index.schema(), &created_at, &now);
             index_writer.delete_term(Term::from_field_text(uuid_field, &post.uuid()));
-            index_writer.add_document(post.to_doc(&index.schema(), &created_at, &now));
+            index_writer.add_document(new_doc.clone());
+            new_doc
         }
         Err(_) => {
             // If no document in index, insert doc
-            index_writer.add_document(post.to_doc(&index.schema(), &now, &now));
+            let created_at = if let Some(c) = post.created_at() {
+                c
+            } else {
+                now
+            };
+
+            let updated_at = if let Some(u) = post.updated_at() {
+                u
+            } else {
+                now
+            };
+
+            let new_doc = post.to_doc(&index.schema(), &created_at, &updated_at);
+            index_writer.add_document(new_doc.clone());
+            new_doc
         }
-    }
+    };
     index_writer.commit()?;
-    Ok(())
+    Ok(Some(new_doc))
 }
 
 pub fn search(
@@ -86,7 +102,7 @@ pub fn search(
     index: &Index,
 ) -> Result<Vec<Document>> {
     let searcher = index.reader()?.searcher();
-    let query_parser = QueryParser::for_index(&index, fields);
+    let query_parser = QueryParser::for_index(index, fields);
     let query = query_parser.parse_query(query)?;
 
     let docs = searcher.search(&query, &TopDocs::with_limit(limit))?;

@@ -87,6 +87,14 @@ impl Post {
         self.matter.to_owned()
     }
 
+    pub fn created_at(&self) -> Option<DateTime> {
+        self.matter.created_at()
+    }
+
+    pub fn updated_at(&self) -> Option<DateTime> {
+        self.matter.updated_at()
+    }
+
     /// **CAUSION!**  
     /// This function do not return strict equal.
     /// If updated_at and created_at in `self.matter` is `None`,

@@ -67,7 +67,11 @@ impl FrontMatter {
     }
 
     pub fn created_at(&self) -> Option<DateTime<Utc>> {
-        self.created_at.clone()
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.updated_at
     }
 
     /// **CAUSION!**  
@@ -178,7 +182,7 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
 
     let created_at = doc["created_at"].as_str().map(|s| {
         match DateTime::parse_from_rfc3339(s)
-            .with_context(|| format!("created at should be rfc3339"))
+            .with_context(|| "created at should be rfc3339")
         {
             Ok(date) => date.into(),
             Err(e) => panic!("{}", e),
@@ -187,7 +191,7 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
 
     let updated_at = doc["updated_at"].as_str().map(|s| {
         match DateTime::parse_from_rfc3339(s)
-            .with_context(|| format!("created at should be rfc3339"))
+            .with_context(|| "updated at should be rfc3339")
         {
             Ok(date) => date.into(),
             Err(e) => panic!("{}", e),
