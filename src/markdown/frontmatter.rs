@@ -1,10 +1,7 @@
-use std::collections::btree_map;
-
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
-use maplit::btreemap;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::posts::Lang;
@@ -112,14 +109,17 @@ impl FrontMatter {
             ("title", self.title()),
             ("description", self.description()),
             ("lang", self.lang.as_str().to_string()),
-            ("category", self.category())    
-        ].into_iter().collect();
-
+            ("category", self.category()),
+        ]
+        .into_iter()
+        .collect();
 
         let opmap: LinkedHashMap<&str, Option<DateTime<Utc>>> = [
             ("created_at", self.created_at),
             ("updated_at", self.updated_at),
-        ].into_iter().collect();
+        ]
+        .into_iter()
+        .collect();
 
         let mut lm = LinkedHashMap::new();
 
@@ -134,8 +134,12 @@ impl FrontMatter {
         }
 
         for (k, v) in opmap.into_iter() {
-            if let Some(date) = v {
-                insert_to_yamlmap(k, date.to_rfc3339(), &mut lm);
+            if let Some(datetime) = v {
+                insert_to_yamlmap(
+                    k,
+                    datetime.to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
+                    &mut lm,
+                );
             }
         }
 

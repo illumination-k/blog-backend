@@ -19,7 +19,7 @@ use tantivy::Index;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::markdown::template::template;
-use crate::text_engine::query::{get_by_uuid, put};
+use crate::text_engine::query::put;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
 fn main() -> Result<()> {
@@ -43,28 +43,28 @@ fn main() -> Result<()> {
             index_dir,
             rebuild,
         } => {
-            info!("input: {:?} index_dir: {:?}", input, index_dir);
+            
             let glob_pattern = format!("{}/**/*.md", input.as_path().to_str().unwrap());
-            info!("glob_pattern: {}", glob_pattern);
+            eprintln!("---- Prep Parmeters  ----");
+            eprintln!("input: {:?}, index_dir: {:?}, glob_pattern: {}, rebuild: {}", input, index_dir, glob_pattern, rebuild);
             let posts = posts::get_all_posts(&glob_pattern)?;
-            println!("rebuld: {}", rebuild);
             let schema = build_schema();
             let index = read_or_build_index(schema.clone(), index_dir, *rebuild)?;
             let mut index_writer = index.writer(100_000_000)?;
 
-            info!("Find {} posts in {:?}", posts.len(), input);
+            eprintln!("\n--- Start Preperation ---");
+            eprintln!("- Find {} posts in {:?}", posts.len(), input);
+            let mut update_post_count = 0;
             for (path, post) in posts.iter() {
                 let doc = put(post, &index, &mut index_writer)?;
                 if let Some(doc) = doc {
+                    update_post_count += 1;
                     let (_, new_markdown) = dump_doc(&doc, &schema)?;
                     io::write_string(path, &new_markdown)?;
                 }
             }
-
-            let term = "fabe88b5-a35e-4954-bfd8-b5e88c585e7a";
-
-            let doc = get_by_uuid(term, &index)?;
-            println!("term: {}\n{}", term, schema.to_json(&doc));
+            eprintln!("- Update {} posts in this prepartion", update_post_count);
+            eprintln!("-------- Finish! --------");
         }
 
         SubCommands::Run {
