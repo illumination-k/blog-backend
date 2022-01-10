@@ -48,19 +48,23 @@ fn main() -> Result<()> {
             info!("glob_pattern: {}", glob_pattern);
             let posts = posts::get_all_posts(&glob_pattern)?;
             println!("rebuld: {}", rebuild);
-            let ja_schema = build_schema();
-            let ja_index = read_or_build_index(ja_schema.clone(), index_dir, *rebuild)?;
-            let mut ja_index_writer = ja_index.writer(100_000_000)?;
+            let schema = build_schema();
+            let index = read_or_build_index(schema.clone(), index_dir, *rebuild)?;
+            let mut index_writer = index.writer(100_000_000)?;
 
             info!("Find {} posts in {:?}", posts.len(), input);
-            for post in posts.iter() {
-                put(&post, &ja_index, &mut ja_index_writer)?;
+            for (path, post) in posts.iter() {
+                let doc = put(post, &index, &mut index_writer)?;
+                if let Some(doc) = doc {
+                    let (_, new_markdown) = dump_doc(&doc, &schema)?;
+                    io::write_string(path, &new_markdown)?;
+                }
             }
 
             let term = "fabe88b5-a35e-4954-bfd8-b5e88c585e7a";
 
-            let doc = get_by_uuid(term, &ja_index)?;
-            println!("term: {}\n{}", term, ja_schema.to_json(&doc));
+            let doc = get_by_uuid(term, &index)?;
+            println!("term: {}\n{}", term, schema.to_json(&doc));
         }
 
         SubCommands::Run {

@@ -33,16 +33,11 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
     };
 
     let docs = if let Some(query) = params.query.to_owned() {
-        search(
-            &query.to_lowercase(),
-            fields,
-            limit,
-            index.deref(),
-        )
-        .unwrap()
-        .iter()
-        .map(|doc| index.schema().to_named_doc(doc))
-        .collect_vec()
+        search(&query.to_lowercase(), fields, limit, index.deref())
+            .unwrap()
+            .iter()
+            .map(|doc| index.schema().to_named_doc(doc))
+            .collect_vec()
     } else {
         Vec::new()
     };

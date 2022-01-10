@@ -1,8 +1,10 @@
+use std::collections::btree_map;
+
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
-use maplit::hashmap;
+use maplit::btreemap;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::posts::Lang;
@@ -104,34 +106,37 @@ impl FrontMatter {
             lm.insert(Yaml::String(k.to_string()), Yaml::String(v));
         }
 
-        let map = hashmap! {
-            "uuid" => self.uuid(),
-            "title" => self.title(),
-            "description" => self.description(),
-            "lang" => self.lang().as_str().to_string(),
-            "category" => self.category(),
-        };
+        // To preserve order, we should use linked-hash-map
+        let map: LinkedHashMap<&str, String> = [
+            ("uuid", self.uuid()),
+            ("title", self.title()),
+            ("description", self.description()),
+            ("lang", self.lang.as_str().to_string()),
+            ("category", self.category())    
+        ].into_iter().collect();
 
-        let opmap = hashmap! {
-            "created_at" => self.created_at,
-            "updated_at" => self.updated_at,
-        };
+
+        let opmap: LinkedHashMap<&str, Option<DateTime<Utc>>> = [
+            ("created_at", self.created_at),
+            ("updated_at", self.updated_at),
+        ].into_iter().collect();
 
         let mut lm = LinkedHashMap::new();
 
+        // Preserve insert order
         for (k, v) in map.into_iter() {
             insert_to_yamlmap(k, v, &mut lm);
+        }
+
+        if let Some(tags) = self.tags() {
+            let tags = tags.into_iter().map(Yaml::String).collect_vec();
+            lm.insert(Yaml::String("tags".to_string()), Yaml::Array(tags));
         }
 
         for (k, v) in opmap.into_iter() {
             if let Some(date) = v {
                 insert_to_yamlmap(k, date.to_rfc3339(), &mut lm);
             }
-        }
-
-        if let Some(tags) = self.tags() {
-            let tags = tags.into_iter().map(Yaml::String).collect_vec();
-            lm.insert(Yaml::String("tags".to_string()), Yaml::Array(tags));
         }
 
         Yaml::Hash(lm)
@@ -181,18 +186,14 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     };
 
     let created_at = doc["created_at"].as_str().map(|s| {
-        match DateTime::parse_from_rfc3339(s)
-            .with_context(|| "created at should be rfc3339")
-        {
+        match DateTime::parse_from_rfc3339(s).with_context(|| "created at should be rfc3339") {
             Ok(date) => date.into(),
             Err(e) => panic!("{}", e),
         }
     });
 
     let updated_at = doc["updated_at"].as_str().map(|s| {
-        match DateTime::parse_from_rfc3339(s)
-            .with_context(|| "updated at should be rfc3339")
-        {
+        match DateTime::parse_from_rfc3339(s).with_context(|| "updated at should be rfc3339") {
             Ok(date) => date.into(),
             Err(e) => panic!("{}", e),
         }

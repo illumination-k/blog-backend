@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use glob::glob;
@@ -258,13 +258,14 @@ fn rsplit_file_at_dot(file: &OsStr) -> (Option<&OsStr>, Option<&OsStr>) {
     }
 }
 
-pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<Post>> {
+pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
     let posts = glob(glob_pattern)?
         .into_iter()
         .filter_map(|path| path.ok())
         .map(|path| {
             // should be /path/to/filename.md
-            Post::from_path(&path)
+            let post = Post::from_path(&path);
+            (path, post)
         })
         .collect_vec();
 
