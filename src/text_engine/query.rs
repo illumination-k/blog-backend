@@ -1,16 +1,13 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use itertools::Itertools;
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{Query, QueryParser, TermQuery, BooleanQuery},
+    query::{Query, QueryParser, TermQuery},
     schema::Field,
     Document, Index, IndexWriter, Term,
 };
 
 use crate::posts::Post;
-
-use super::schema::{FieldGetter, PostField};
 
 pub fn get_all(query: &Box<dyn Query>, index: &Index) -> Result<Vec<Document>> {
     let searcher = index.reader()?.searcher();
