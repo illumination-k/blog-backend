@@ -1,13 +1,29 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
+use itertools::Itertools;
 use tantivy::{
-    collector::TopDocs,
-    query::{QueryParser, TermQuery},
+    collector::{Count, TopDocs},
+    query::{Query, QueryParser, TermQuery, BooleanQuery},
     schema::Field,
     Document, Index, IndexWriter, Term,
 };
 
 use crate::posts::Post;
+
+use super::schema::{FieldGetter, PostField};
+
+pub fn get_all(query: &Box<dyn Query>, index: &Index) -> Result<Vec<Document>> {
+    let searcher = index.reader()?.searcher();
+    let counter = Count {};
+    let count = searcher.search(query, &counter)?;
+
+    let docs = searcher.search(query, &TopDocs::with_limit(count))?;
+
+    Ok(docs
+        .into_iter()
+        .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
+        .collect())
+}
 
 pub fn term_query_one(term: &str, field: Field, index: &Index) -> Result<Document> {
     let reader = index.reader()?;
@@ -27,20 +43,6 @@ pub fn term_query_one(term: &str, field: Field, index: &Index) -> Result<Documen
     Ok(doc)
 }
 
-pub fn term_query(term: &str, field: Field, index: &Index) -> Result<Vec<Document>> {
-    let searcher = index.reader()?.searcher();
-
-    let t = Term::from_field_text(field, term);
-    let tq = TermQuery::new(t, tantivy::schema::IndexRecordOption::Basic);
-
-    let docs = searcher.search(&tq, &TopDocs::with_limit(10))?;
-
-    Ok(docs
-        .into_iter()
-        .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
-        .collect())
-}
-
 pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
     let field = index.schema().get_field("uuid").unwrap();
     term_query_one(uuid, field, index)
@@ -48,7 +50,6 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
 
 pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<()> {
     let now = Utc::now();
-    debug!("{}", now);
     match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
             let uuid_field = index.schema().get_field("uuid").unwrap();
@@ -68,7 +69,7 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
                     .unwrap()
                     .to_owned()
             };
-            
+
             index_writer.delete_term(Term::from_field_text(uuid_field, &post.uuid()));
             index_writer.add_document(post.to_doc(&index.schema(), &created_at, &now));
         }
@@ -85,7 +86,7 @@ pub fn search(
     query: &str,
     fields: Vec<Field>,
     limit: usize,
-    index: Index,
+    index: &Index,
 ) -> Result<Vec<Document>> {
     let searcher = index.reader()?.searcher();
     let query_parser = QueryParser::for_index(&index, fields);

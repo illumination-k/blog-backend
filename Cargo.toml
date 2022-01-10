@@ -1,5 +1,5 @@
 [package]
-name = "blog-backend"
+name = "smark"
 version = "0.1.0"
 edition = "2021"
 

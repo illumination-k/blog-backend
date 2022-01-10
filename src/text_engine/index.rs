@@ -14,10 +14,19 @@ use tantivy::Result;
 
 use crate::posts::Lang;
 
-pub fn build_index(schema: Schema, index_dir: &Path) -> Result<Index> {
-    let tokenizer_name = Lang::Ja.tokenizer_name();
-
-    let index = Index::create_in_dir(index_dir, schema)?;
+pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> Result<Index> {
+    let index = if index_dir.exists() {
+        if rebuild {
+            fs::remove_dir_all(index_dir)?;
+            fs::create_dir(index_dir)?;
+            Index::create_in_dir(index_dir, schema)
+        } else {
+            Index::open_in_dir(index_dir)
+        }
+    } else {
+        fs::create_dir(index_dir)?;
+        Index::create_in_dir(index_dir, schema)
+    }?;
 
     let config = TokenizerConfig {
         dict_path: None,
@@ -27,26 +36,11 @@ pub fn build_index(schema: Schema, index_dir: &Path) -> Result<Index> {
     };
 
     index.tokenizers().register("raw_tokenizer", RawTokenizer);
-
+    let tokenizer_name = Lang::Ja.tokenizer_name();
     let ja_tokenizer =
         TextAnalyzer::from(LinderaTokenizer::with_config(config).unwrap()).filter(LowerCaser);
     // register Lindera tokenizer
     index.tokenizers().register(&tokenizer_name, ja_tokenizer);
 
     Ok(index)
-}
-
-pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> Result<Index> {
-    if index_dir.exists() {
-        if rebuild {
-            fs::remove_dir_all(index_dir)?;
-            fs::create_dir(index_dir)?;
-            build_index(schema, index_dir)
-        } else {
-            Index::open_in_dir(index_dir)
-        }
-    } else {
-        fs::create_dir(index_dir)?;
-        build_index(schema, index_dir)
-    }
 }

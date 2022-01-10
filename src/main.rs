@@ -63,7 +63,9 @@ fn main() -> Result<()> {
             println!("term: {}\n{}", term, ja_schema.to_json(&doc));
         }
 
-        SubCommands::Run {} => {}
+        SubCommands::Run {} => {
+            server::main("8080".to_string())?;
+        }
         SubCommands::Template {} => {
             println!("{}", template());
         }

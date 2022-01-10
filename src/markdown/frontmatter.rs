@@ -20,6 +20,7 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
+    #[allow(clippy::too_many_arguments)]
     pub fn new<S: ToString>(
         uuid: S,
         title: S,
@@ -37,8 +38,8 @@ impl FrontMatter {
             category: category.to_string(),
             lang,
             tags,
-            created_at: created_at,
-            updated_at: updated_at,
+            created_at,
+            updated_at,
         }
     }
 
@@ -83,11 +84,11 @@ impl FrontMatter {
             && self.tags == other.tags
             && self.lang == other.lang;
 
-        if let Some(_) = self.created_at {
+        if self.created_at.is_some() {
             flag = flag && self.created_at == other.created_at
         }
 
-        if let Some(_) = self.updated_at {
+        if self.updated_at.is_some() {
             flag = flag && self.updated_at == other.updated_at
         }
 
@@ -96,7 +97,7 @@ impl FrontMatter {
 
     pub fn to_yaml(&self) -> Yaml {
         fn insert_to_yamlmap<S: ToString>(k: S, v: String, lm: &mut LinkedHashMap<Yaml, Yaml>) {
-            lm.insert(Yaml::String(k.to_string()), Yaml::String(v.to_string()));
+            lm.insert(Yaml::String(k.to_string()), Yaml::String(v));
         }
 
         let map = hashmap! {

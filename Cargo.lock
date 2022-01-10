@@ -402,31 +402,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "blog-backend"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "anyhow",
- "chrono",
- "glob",
- "itertools",
- "lindera",
- "lindera-core",
- "lindera-tantivy",
- "linked-hash-map",
- "log",
- "maplit",
- "pretty_env_logger",
- "pulldown-cmark",
- "serde",
- "serde_json",
- "structopt",
- "tantivy",
- "uuid",
- "yaml-rust",
-]
-
-[[package]]
 name = "brotli-sys"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2300,6 +2275,31 @@ name = "smallvec"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ecab6c735a6bb4139c0caafd0cc3635748bbb3acf4550e8138122099251f309"
+
+[[package]]
+name = "smark"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "glob",
+ "itertools",
+ "lindera",
+ "lindera-core",
+ "lindera-tantivy",
+ "linked-hash-map",
+ "log",
+ "maplit",
+ "pretty_env_logger",
+ "pulldown-cmark",
+ "serde",
+ "serde_json",
+ "structopt",
+ "tantivy",
+ "uuid",
+ "yaml-rust",
+]
 
 [[package]]
 name = "socket2"
