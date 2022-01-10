@@ -45,8 +45,12 @@ pub enum SubCommands {
         port: u32,
         #[structopt(short = "-H", long = "host", default_value = "127.0.0.1")]
         host: String,
-        #[structopt(long = "index_dir")]
+        #[structopt(long = "index-dir")]
         index_dir: PathBuf,
+        #[structopt(long = "cors-origin")]
+        _cors_origin: Option<String>,
+        #[structopt(long = "static")]
+        static_dir: PathBuf,
     },
 
     #[structopt(name = "template", about = "stdout template")]

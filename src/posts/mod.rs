@@ -123,7 +123,7 @@ impl Post {
         let raw_text = extract_text(body);
         Self {
             slug,
-            matter: frontmatter.unwrap(),
+            matter: frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path)),
             body: body.to_string(),
             raw_text,
         }

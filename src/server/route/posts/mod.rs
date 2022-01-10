@@ -10,7 +10,10 @@ use tantivy::{
     Index, Term,
 };
 
-use crate::text_engine::{query::get_all, schema::{PostField, FieldGetter}};
+use crate::text_engine::{
+    query::get_all,
+    schema::{FieldGetter, PostField},
+};
 
 #[derive(Debug, Deserialize)]
 pub struct GetPostsQueryParams {

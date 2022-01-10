@@ -8,7 +8,7 @@ mod posts;
 mod server;
 mod text_engine;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use markdown::dump::dump_doc;
 use std::env::set_var;
 use std::fs;
@@ -43,10 +43,12 @@ fn main() -> Result<()> {
             index_dir,
             rebuild,
         } => {
-            
             let glob_pattern = format!("{}/**/*.md", input.as_path().to_str().unwrap());
             eprintln!("---- Prep Parmeters  ----");
-            eprintln!("input: {:?}, index_dir: {:?}, glob_pattern: {}, rebuild: {}", input, index_dir, glob_pattern, rebuild);
+            eprintln!(
+                "input: {:?}, index_dir: {:?}, glob_pattern: {}, rebuild: {}",
+                input, index_dir, glob_pattern, rebuild
+            );
             let posts = posts::get_all_posts(&glob_pattern)?;
             let schema = build_schema();
             let index = read_or_build_index(schema.clone(), index_dir, *rebuild)?;
@@ -71,8 +73,19 @@ fn main() -> Result<()> {
             port,
             host,
             index_dir,
+            _cors_origin,
+            static_dir,
         } => {
-            server::main(host.to_owned(), port.to_string(), index_dir.to_owned())?;
+            if !static_dir.exists() {
+                return Err(anyhow!(format!("{} does not exist", static_dir.display())));
+            }
+            server::main(
+                host.to_owned(),
+                port.to_string(),
+                index_dir.to_owned(),
+                static_dir.to_owned(),
+                _cors_origin.to_owned(),
+            )?;
         }
         SubCommands::Template {} => {
             println!("{}", template());
