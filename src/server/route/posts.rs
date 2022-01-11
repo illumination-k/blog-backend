@@ -1,5 +1,3 @@
-pub mod search;
-
 use actix_web::{get, web, HttpRequest, HttpResponse};
 use itertools::Itertools;
 use serde::Deserialize;
@@ -35,8 +33,11 @@ pub struct GetPostsQueryParams {
 async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
     let schema = index.schema();
-    let fb = FieldGetter::new(schema);
-    let params = web::Query::<GetPostsQueryParams>::from_query(req.query_string()).unwrap();
+    let fb = FieldGetter::new(&schema);
+    let params = match web::Query::<GetPostsQueryParams>::from_query(req.query_string()) {
+        Ok(p) => p,
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    };
 
     let mut queries = vec![];
     if let Some(lang) = params.lang.to_owned() {
@@ -62,14 +63,18 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         queries.push((Occur::Must, query));
     }
 
-    let _docs = if queries.is_empty() {
+    let __docs = if queries.is_empty() {
         let q: Box<dyn Query> = Box::new(AllQuery {});
         get_all(&q, index.deref())
     } else {
         let q: Box<dyn Query> = Box::new(BooleanQuery::new(queries));
         get_all(&q, index.deref())
-    }
-    .unwrap();
+    };
+
+    let _docs = match __docs {
+        Ok(_docs) => _docs,
+        Err(_) => return HttpResponse::InternalServerError().body("Internal Server Error"),
+    };
 
     let docs = if let Some(docs) = _docs {
         docs.iter()

@@ -31,7 +31,8 @@ pub fn get_all(query: &dyn Query, index: &Index) -> Result<Option<Vec<Document>>
 
 pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String>)> {
     let q: Box<dyn Query> = Box::new(AllQuery {});
-    let fq = FieldGetter::new(index.schema());
+    let schema = index.schema();
+    let fq = FieldGetter::new(&schema);
 
     let _docs = get_all(&q, index)?;
     let tag_field = fq.get_field(PostField::Tags);
@@ -93,13 +94,14 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
 
 pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
     let now = Utc::now();
-    let fb = FieldGetter::new(index.schema());
+    let schema = index.schema();
+    let fb = FieldGetter::new(&schema);
     let new_doc = match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
             let uuid_field = fb.get_field(PostField::Uuid);
             // dbg!(&post, &Post::from_doc(&doc, &index.schema()));
             // if no update in post, skip update index
-            if post.equal_from_doc(&Post::from_doc(&doc, &index.schema())) {
+            if post.equal_from_doc(&Post::from_doc(&doc, &schema)?) {
                 info!("skip post: {}", post.title());
                 return Ok(None);
             }

@@ -1,6 +1,9 @@
 use crate::posts::Lang;
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use tantivy::schema::*;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PostField {
     Uuid,
     Slug,
@@ -31,14 +34,32 @@ impl PostField {
             PostField::UpdatedAt => "updated_at",
         }
     }
+
+    pub fn text_fields() -> [Self; 9] {
+        [
+            PostField::Uuid,
+            PostField::Slug,
+            PostField::Title,
+            PostField::Lang,
+            PostField::Description,
+            PostField::Category,
+            PostField::Tags,
+            PostField::Body,
+            PostField::RawText,
+        ]
+    }
+
+    pub fn date_fields() -> [Self; 2] {
+        [PostField::CreatedAt, PostField::UpdatedAt]
+    }
 }
 
-pub struct FieldGetter {
-    schema: Schema,
+pub struct FieldGetter<'a> {
+    schema: &'a Schema,
 }
 
-impl FieldGetter {
-    pub fn new(schema: Schema) -> Self {
+impl<'a> FieldGetter<'a> {
+    pub fn new(schema: &'a Schema) -> Self {
         Self { schema }
     }
 
@@ -48,6 +69,53 @@ impl FieldGetter {
         self.schema
             .get_field(field_name)
             .unwrap_or_else(|| panic!("Error in PostField: {}", field_name))
+    }
+
+    #[allow(dead_code)]
+    pub fn get_fields(&self, fields: &[PostField]) -> Vec<Field> {
+        fields.iter().map(|&pf| self.get_field(pf)).collect()
+    }
+
+    pub fn get_text(&self, doc: &Document, field: PostField) -> Result<String> {
+        if PostField::text_fields().contains(&field) {
+            Ok(doc
+                .get_first(self.get_field(field))
+                .unwrap()
+                .text()
+                .unwrap()
+                .to_string())
+        } else {
+            Err(anyhow!(format!("{} is not text field", field.as_str())))
+        }
+    }
+
+    pub fn get_date(&self, doc: &Document, field: PostField) -> Result<DateTime<Utc>> {
+        if PostField::date_fields().contains(&field) {
+            Ok(doc
+                .get_first(self.get_field(field))
+                .unwrap()
+                .date_value()
+                .unwrap()
+                .to_owned())
+        } else {
+            Err(anyhow!(format!("{} is not date field", field.as_str())))
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_text_fields(&self) -> Vec<Field> {
+        PostField::text_fields()
+            .into_iter()
+            .map(|pf| self.get_field(pf))
+            .collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn get_date_fields(&self) -> Vec<Field> {
+        PostField::date_fields()
+            .into_iter()
+            .map(|pf| self.get_field(pf))
+            .collect()
     }
 }
 

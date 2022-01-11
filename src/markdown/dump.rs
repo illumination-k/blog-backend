@@ -15,7 +15,7 @@ pub fn dump_matter(matter: &FrontMatter) -> Result<String> {
 }
 
 pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
-    let post = Post::from_doc(doc, schema);
+    let post = Post::from_doc(doc, schema)?;
 
     let mut out_str = dump_matter(&post.matter())?;
     out_str.push_str(&post.body());
