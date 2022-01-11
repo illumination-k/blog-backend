@@ -8,7 +8,7 @@ mod posts;
 mod server;
 mod text_engine;
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use markdown::dump::dump_doc;
 use std::env::set_var;
 use std::fs;
@@ -19,7 +19,6 @@ use tantivy::Index;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::markdown::template::template;
-use crate::text_engine::query::put;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
 fn main() -> Result<()> {
@@ -43,30 +42,16 @@ fn main() -> Result<()> {
             index_dir,
             rebuild,
         } => {
-            let glob_pattern = format!("{}/**/*.md", input.as_path().to_str().unwrap());
+            let glob_pattern = format!("{}/**/*.md", input.display());
             eprintln!("---- Prep Parmeters  ----");
             eprintln!(
                 "input: {:?}, index_dir: {:?}, glob_pattern: {}, rebuild: {}",
                 input, index_dir, glob_pattern, rebuild
             );
-            let posts = posts::get_all_posts(&glob_pattern)?;
             let schema = build_schema();
             let index = read_or_build_index(schema.clone(), index_dir, *rebuild)?;
-            let mut index_writer = index.writer(100_000_000)?;
 
-            eprintln!("\n--- Start Preperation ---");
-            eprintln!("- Find {} posts in {:?}", posts.len(), input);
-            let mut update_post_count = 0;
-            for (path, post) in posts.iter() {
-                let doc = put(post, &index, &mut index_writer)?;
-                if let Some(doc) = doc {
-                    update_post_count += 1;
-                    let (_, new_markdown) = dump_doc(&doc, &schema)?;
-                    io::write_string(path, &new_markdown)?;
-                }
-            }
-            eprintln!("- Update {} posts in this prepartion", update_post_count);
-            eprintln!("-------- Finish! --------");
+            posts::index::build(&glob_pattern, &index)?;
         }
 
         SubCommands::Run {

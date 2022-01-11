@@ -1,25 +1,71 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
+use itertools::Itertools;
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{Query, QueryParser, TermQuery},
+    query::{AllQuery, Query, QueryParser, TermQuery},
     schema::Field,
     Document, Index, IndexWriter, Term,
 };
 
 use crate::posts::Post;
 
-pub fn get_all(query: &dyn Query, index: &Index) -> Result<Vec<Document>> {
+use super::schema::{FieldGetter, PostField};
+
+pub fn get_all(query: &dyn Query, index: &Index) -> Result<Option<Vec<Document>>> {
     let searcher = index.reader()?.searcher();
     let counter = Count {};
     let count = searcher.search(query, &counter)?;
 
+    if count == 0 {
+        return Ok(None);
+    }
     let docs = searcher.search(query, &TopDocs::with_limit(count))?;
 
-    Ok(docs
-        .into_iter()
-        .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
-        .collect())
+    Ok(Some(
+        docs.into_iter()
+            .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
+            .collect(),
+    ))
+}
+
+pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String>)> {
+    let q: Box<dyn Query> = Box::new(AllQuery {});
+    let fq = FieldGetter::new(index.schema());
+
+    let _docs = get_all(&q, index)?;
+    let tag_field = fq.get_field(PostField::Tags);
+    let category_field = fq.get_field(PostField::Category);
+
+    if let Some(docs) = _docs {
+        let (categories_string, tags_string) =
+            docs.iter()
+                .fold((String::new(), String::new()), |(categories, tags), doc| {
+                    let category = doc.get_first(category_field).unwrap().text().unwrap();
+                    let inner_tags = doc.get_first(tag_field).unwrap().text().unwrap();
+
+                    (
+                        format!("{} {}", categories, category),
+                        format!("{} {}", tags, inner_tags),
+                    )
+                });
+        return Ok((
+            categories_string
+                .trim()
+                .split(' ')
+                .map(|x| x.to_string())
+                .unique()
+                .collect_vec(),
+            tags_string
+                .trim()
+                .split(' ')
+                .map(|x| x.to_string())
+                .unique()
+                .collect_vec(),
+        ));
+    }
+
+    Ok((Vec::new(), Vec::new()))
 }
 
 pub fn term_query_one(term: &str, field: Field, index: &Index) -> Result<Document> {
@@ -47,9 +93,10 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
 
 pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
     let now = Utc::now();
+    let fb = FieldGetter::new(index.schema());
     let new_doc = match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
-            let uuid_field = index.schema().get_field("uuid").unwrap();
+            let uuid_field = fb.get_field(PostField::Uuid);
             // dbg!(&post, &Post::from_doc(&doc, &index.schema()));
             // if no update in post, skip update index
             if post.equal_from_doc(&Post::from_doc(&doc, &index.schema())) {
@@ -60,7 +107,7 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
             let created_at = if let Some(created_at) = post.matter().created_at() {
                 created_at
             } else {
-                doc.get_first(index.schema().get_field("created_at").unwrap())
+                doc.get_first(fb.get_field(PostField::CreatedAt))
                     .unwrap()
                     .date_value()
                     .unwrap()
@@ -101,6 +148,9 @@ pub fn search(
     limit: usize,
     index: &Index,
 ) -> Result<Vec<Document>> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
     let searcher = index.reader()?.searcher();
     let query_parser = QueryParser::for_index(index, fields);
     let query = query_parser.parse_query(query)?;
