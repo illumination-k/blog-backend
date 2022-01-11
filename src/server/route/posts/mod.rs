@@ -38,7 +38,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let fb = FieldGetter::new(&schema);
     let params = match web::Query::<GetPostsQueryParams>::from_query(req.query_string()) {
         Ok(p) => p,
-        Err(e) => return HttpResponse::BadRequest().body(e.to_string())
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     };
 
     let mut queries = vec![];
@@ -75,9 +75,8 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
 
     let _docs = match __docs {
         Ok(_docs) => _docs,
-        Err(_) => return HttpResponse::InternalServerError().body("Internal Server Error") 
+        Err(_) => return HttpResponse::InternalServerError().body("Internal Server Error"),
     };
-    
 
     let docs = if let Some(docs) = _docs {
         docs.iter()

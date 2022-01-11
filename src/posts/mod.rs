@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use tantivy::schema::*;
-use tantivy::{DateTime};
+use tantivy::DateTime;
 
 use crate::markdown::{
     extract_text::extract_text,
@@ -130,7 +130,7 @@ impl Post {
         let fb = FieldGetter::new(schema);
 
         let uuid = fb.get_text(doc, PostField::Uuid)?;
-        let slug =fb.get_text(doc, PostField::Slug)?;
+        let slug = fb.get_text(doc, PostField::Slug)?;
         let title = fb.get_text(doc, PostField::Title)?;
         let description = fb.get_text(doc, PostField::Description)?;
         let body = fb.get_text(doc, PostField::Body)?;
@@ -139,7 +139,7 @@ impl Post {
         let tags = fb.get_text(doc, PostField::Tags)?;
         let raw_text = fb.get_text(doc, PostField::RawText)?;
         let created_at = fb.get_date(doc, PostField::CreatedAt)?;
-        let updated_at =fb.get_date(doc, PostField::UpdatedAt)?;
+        let updated_at = fb.get_date(doc, PostField::UpdatedAt)?;
 
         let tags = if tags.is_empty() {
             None
@@ -187,7 +187,9 @@ impl Post {
             (PostField::Lang, self.lang().as_str().to_string()),
             (PostField::Category, self.matter.category()),
             (PostField::RawText, self.raw_text()),
-        ].into_iter().for_each(|(pf,text)| doc.add_text(fb.get_field(pf), text));
+        ]
+        .into_iter()
+        .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
 
         let tags = fb.get_field(PostField::Tags);
 

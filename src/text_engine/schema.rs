@@ -1,7 +1,7 @@
 use crate::posts::Lang;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use tantivy::schema::*;
-use anyhow::{Result, anyhow};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PostField {
@@ -73,21 +73,30 @@ impl<'a> FieldGetter<'a> {
 
     #[allow(dead_code)]
     pub fn get_fields(&self, fields: &[PostField]) -> Vec<Field> {
-        fields.into_iter().map(|&pf| self.get_field(pf)).collect()
+        fields.iter().map(|&pf| self.get_field(pf)).collect()
     }
 
     pub fn get_text(&self, doc: &Document, field: PostField) -> Result<String> {
         if PostField::text_fields().contains(&field) {
-            Ok(doc.get_first(self.get_field(field)).unwrap().text().unwrap().to_string())
+            Ok(doc
+                .get_first(self.get_field(field))
+                .unwrap()
+                .text()
+                .unwrap()
+                .to_string())
         } else {
             Err(anyhow!(format!("{} is not text field", field.as_str())))
         }
-        
     }
 
     pub fn get_date(&self, doc: &Document, field: PostField) -> Result<DateTime<Utc>> {
         if PostField::date_fields().contains(&field) {
-            Ok(doc.get_first(self.get_field(field)).unwrap().date_value().unwrap().to_owned())
+            Ok(doc
+                .get_first(self.get_field(field))
+                .unwrap()
+                .date_value()
+                .unwrap()
+                .to_owned())
         } else {
             Err(anyhow!(format!("{} is not date field", field.as_str())))
         }
@@ -103,9 +112,10 @@ impl<'a> FieldGetter<'a> {
 
     #[allow(dead_code)]
     pub fn get_date_fields(&self) -> Vec<Field> {
-        PostField::date_fields().into_iter()
-        .map(|pf| self.get_field(pf))
-        .collect()
+        PostField::date_fields()
+            .into_iter()
+            .map(|pf| self.get_field(pf))
+            .collect()
     }
 }
 

@@ -49,7 +49,7 @@ fn main() -> Result<()> {
                 input, index_dir, glob_pattern, rebuild
             );
             let schema = build_schema();
-            let index = read_or_build_index(schema.clone(), index_dir, *rebuild)?;
+            let index = read_or_build_index(schema, index_dir, *rebuild)?;
 
             posts::index::build(&glob_pattern, &index)?;
         }
