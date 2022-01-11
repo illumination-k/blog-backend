@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use serde::Deserialize;
 use tantivy::{
     collector::{Count, TopDocs},
     query::{AllQuery, Query, QueryParser, TermQuery},
     schema::Field,
-    Document, Index, IndexWriter, Term, DocAddress
+    DocAddress, Document, Index, IndexWriter, Term,
 };
 
 use crate::posts::Post;
@@ -19,8 +19,11 @@ pub enum OrderBy {
     UpdatedAt,
 }
 
-
-pub fn get_all(query: &dyn Query, index: &Index, order_by: Option<OrderBy>) -> Result<Option<Vec<Document>>> {
+pub fn get_all(
+    query: &dyn Query,
+    index: &Index,
+    order_by: Option<OrderBy>,
+) -> Result<Option<Vec<Document>>> {
     let schema = index.schema();
     let searcher = index.reader()?.searcher();
     let counter = Count {};
@@ -31,19 +34,25 @@ pub fn get_all(query: &dyn Query, index: &Index, order_by: Option<OrderBy>) -> R
         return Ok(None);
     }
 
-    let docs= if let Some(order_by) = order_by {
-        let collector = match order_by {
-            OrderBy::CreatedAt => {
-                TopDocs::with_limit(count).order_by_fast_field(fb.get_field(PostField::CreatedAt))
-            },
-            OrderBy::UpdatedAt => {
-                TopDocs::with_limit(count).order_by_fast_field(fb.get_field(PostField::UpdatedAt))
-            }
-        };
-        searcher.search(query, &collector)?.into_iter().flat_map(|doc: (DateTime<Utc>, DocAddress)| searcher.doc(doc.1).ok()).collect()
+    let docs = if let Some(order_by) = order_by {
+        let collector =
+            match order_by {
+                OrderBy::CreatedAt => TopDocs::with_limit(count)
+                    .order_by_fast_field(fb.get_field(PostField::CreatedAt)),
+                OrderBy::UpdatedAt => TopDocs::with_limit(count)
+                    .order_by_fast_field(fb.get_field(PostField::UpdatedAt)),
+            };
+        searcher
+            .search(query, &collector)?
+            .into_iter()
+            .flat_map(|doc: (DateTime<Utc>, DocAddress)| searcher.doc(doc.1).ok())
+            .collect()
     } else {
-        searcher.search(query, &TopDocs::with_limit(count))?.into_iter().flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
-        .collect()
+        searcher
+            .search(query, &TopDocs::with_limit(count))?
+            .into_iter()
+            .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
+            .collect()
     };
 
     Ok(Some(docs))

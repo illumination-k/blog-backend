@@ -39,7 +39,10 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
     let docs = if let Some(query) = params.query.to_owned() {
         match search(&query.to_lowercase(), fields, limit, index.deref()) {
             Ok(docs) => docs,
-            Err(_) => return HttpResponse::InternalServerError().body("Internal Server Error"),
+            Err(e) => {
+                error!("{:?}", e);
+                return HttpResponse::InternalServerError().body("Internal Server Error");
+            }
         }
         .iter()
         .map(|doc| index.schema().to_named_doc(doc))

@@ -139,7 +139,8 @@ impl SchemaConstructor {
 
     pub fn build_date_fields(&mut self, fields: &[PostField]) {
         fields.iter().for_each(|field| {
-            self.schema_builder.add_date_field(field.as_str(), FAST | STORED);
+            self.schema_builder
+                .add_date_field(field.as_str(), FAST | STORED);
         })
     }
 

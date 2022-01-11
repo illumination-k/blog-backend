@@ -24,12 +24,19 @@ async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> Htt
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub enum Order {
+    Asc,
+    Desc,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct GetPostsQueryParams {
     lang: Option<String>,
     category: Option<String>,
     tag: Option<String>,
     order_by: Option<OrderBy>,
+    order: Option<Order>,
 }
 
 impl GetPostsQueryParams {
@@ -40,7 +47,7 @@ impl GetPostsQueryParams {
             self.tag.to_owned(),
         ]
         .into_iter()
-        .flat_map(|x| x)
+        .flatten()
         .zip(&[PostField::Lang, PostField::Category, PostField::Tags])
         .map(|(val, &pf)| {
             let field = fb.get_field(pf);
@@ -54,7 +61,11 @@ impl GetPostsQueryParams {
     }
 
     pub fn order_by(&self) -> Option<OrderBy> {
-        return self.order_by.to_owned()
+        self.order_by.to_owned()
+    }
+
+    pub fn get_order(&self) -> Order {
+        self.order.to_owned().unwrap_or(Order::Desc)
     }
 }
 
@@ -80,16 +91,24 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
 
     let _docs = match __docs {
         Ok(_docs) => _docs,
-        Err(e) => return HttpResponse::InternalServerError().body(format!("Internal Server Error: {}", e.to_string())),
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().body(format!("Internal Server Error"));
+        }
     };
 
-    let docs = if let Some(docs) = _docs {
+    let mut docs = if let Some(docs) = _docs {
         docs.iter()
             .map(|doc| index.schema().to_named_doc(doc))
             .collect_vec()
     } else {
         Vec::new()
     };
+
+    match params.get_order() {
+        Order::Asc => docs.reverse(),
+        Order::Desc => {}
+    }
 
     HttpResponse::Ok().json(docs)
 }

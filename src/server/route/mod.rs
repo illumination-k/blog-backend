@@ -4,13 +4,6 @@ pub mod search;
 use super::{CategoryList, TagList};
 
 use actix_web::{get, web, HttpResponse, Responder};
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub enum OrderBy {
-    CreatedAt,
-    UpdatedAt,
-}
 
 #[get("/")]
 async fn hello() -> impl Responder {
