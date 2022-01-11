@@ -1,6 +1,9 @@
 name: Release
 
-on: push
+on:
+  push:
+    tags:
+      - "*"
 
 jobs:
   build:
@@ -40,20 +43,20 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           load: true
-          tags: illumination27/${{martrix.target}}
+          tags: illumination27/${{ matrix.target }}
 
-      - name: Test musl build with all features
+      - name: Cross Build
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           args: --release --target ${{ matrix.target }}
 
-      # - name: Upload binaries to release
-      #   uses: svenstaro/upload-release-action@2.1.1
-      #   with:
-      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
-      #     file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-      #     asset_name: ${{ matrix.asset_name }}
-      #     tag: ${{ github.ref }}
-      #     overwrite: true
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@2.1.1
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
+          overwrite: true
