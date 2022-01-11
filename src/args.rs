@@ -32,7 +32,7 @@ pub enum SubCommands {
     Prep {
         #[structopt(short = "-i", long = "input")]
         input: PathBuf,
-        #[structopt(long = "index-dir")]
+        #[structopt(long = "index-dir", about = "path to tanitivy index directory")]
         index_dir: PathBuf,
         #[structopt(long = "rebuild")]
         rebuild: bool,
@@ -45,15 +45,15 @@ pub enum SubCommands {
         port: u32,
         #[structopt(short = "-H", long = "host", default_value = "127.0.0.1")]
         host: String,
-        #[structopt(long = "index-dir")]
+        #[structopt(long = "index-dir", about = "path to tanitivy index directory")]
         index_dir: PathBuf,
         #[structopt(long = "cors-origin")]
         _cors_origin: Option<String>,
-        #[structopt(long = "static")]
+        #[structopt(long = "static-dir")]
         static_dir: PathBuf,
     },
 
-    #[structopt(name = "template", about = "stdout template")]
+    #[structopt(name = "template", about = "stdout markdown template")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
     Template {},
 
@@ -65,7 +65,7 @@ pub enum SubCommands {
     Dump {
         #[structopt(short = "-o", long = "outdir")]
         outdir: PathBuf,
-        #[structopt(long = "index-dir")]
+        #[structopt(long = "index-dir", about = "path to tanitivy index directory")]
         index_dir: PathBuf,
     },
 }

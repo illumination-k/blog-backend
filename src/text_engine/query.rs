@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
+use itertools::Itertools;
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{Query, QueryParser, TermQuery},
+    query::{AllQuery, Query, QueryParser, TermQuery},
     schema::Field,
     Document, Index, IndexWriter, Term,
 };
@@ -26,6 +27,45 @@ pub fn get_all(query: &dyn Query, index: &Index) -> Result<Option<Vec<Document>>
             .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
             .collect(),
     ))
+}
+
+pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String>)> {
+    let q: Box<dyn Query> = Box::new(AllQuery {});
+    let fq = FieldGetter::new(index.schema());
+
+    let _docs = get_all(&q, index)?;
+    let tag_field = fq.get_field(PostField::Tags);
+    let category_field = fq.get_field(PostField::Category);
+
+    if let Some(docs) = _docs {
+        let (categories_string, tags_string) =
+            docs.iter()
+                .fold((String::new(), String::new()), |(categories, tags), doc| {
+                    let category = doc.get_first(category_field).unwrap().text().unwrap();
+                    let inner_tags = doc.get_first(tag_field).unwrap().text().unwrap();
+
+                    (
+                        format!("{} {}", categories, category),
+                        format!("{} {}", tags, inner_tags),
+                    )
+                });
+        return Ok((
+            categories_string
+                .trim()
+                .split(' ')
+                .map(|x| x.to_string())
+                .unique()
+                .collect_vec(),
+            tags_string
+                .trim()
+                .split(' ')
+                .map(|x| x.to_string())
+                .unique()
+                .collect_vec(),
+        ));
+    }
+
+    Ok((Vec::new(), Vec::new()))
 }
 
 pub fn term_query_one(term: &str, field: Field, index: &Index) -> Result<Document> {
