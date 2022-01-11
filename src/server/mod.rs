@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{App, middleware, HttpServer};
+use actix_web::{middleware, App, HttpServer};
 use anyhow::Result;
 
 use std::path::PathBuf;
@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
 mod route;
-
 
 #[actix_web::main]
 pub async fn main(

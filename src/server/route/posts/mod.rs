@@ -53,17 +53,22 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         queries.push((Occur::Must, query));
     }
 
-    let docs = if queries.is_empty() {
+    let _docs = if queries.is_empty() {
         let q: Box<dyn Query> = Box::new(AllQuery {});
         get_all(&q, index.deref())
     } else {
         let q: Box<dyn Query> = Box::new(BooleanQuery::new(queries));
         get_all(&q, index.deref())
     }
-    .unwrap()
-    .iter()
-    .map(|doc| index.schema().to_named_doc(doc))
-    .collect_vec();
+    .unwrap();
+
+    let docs = if let Some(docs) = _docs {
+        docs.iter()
+            .map(|doc| index.schema().to_named_doc(doc))
+            .collect_vec()
+    } else {
+        Vec::new()
+    };
 
     HttpResponse::Ok().json(docs)
 }
