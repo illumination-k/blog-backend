@@ -42,7 +42,7 @@ jobs:
           load: true
           tags: illumination27/${{ matrix.target }}
 
-      - name: Test musl build with all features
+      - name: Cross Build
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
