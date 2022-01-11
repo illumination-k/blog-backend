@@ -1,20 +1,20 @@
 use uuid::Uuid;
 
-pub fn template() -> String {
-    let uuid = Uuid::new_v4().to_string();
-    let template = format!(
-        "---
-uuid: {}
-title:
-description:
-lang: ja
-category: misc
----
+use super::{dump::dump_matter, frontmatter::FrontMatter};
+use crate::posts::Lang;
+use anyhow::Result;
 
-## TL;DR
-",
-        uuid
+pub fn template() -> Result<String> {
+    let matter = FrontMatter::new(
+        Uuid::new_v4().to_string().as_str(),
+        "",
+        "",
+        "",
+        Lang::Ja,
+        None,
+        None,
+        None,
     );
 
-    template
+    dump_matter(&matter)
 }
