@@ -13,6 +13,8 @@ use crate::text_engine::{
     schema::{FieldGetter, PostField},
 };
 
+use crate::text_engine::query::OrderBy;
+
 #[get("/posts/{uuid}")]
 async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> HttpResponse {
     let schema = index.schema();
@@ -22,11 +24,49 @@ async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> Htt
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub enum Order {
+    Asc,
+    Desc,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct GetPostsQueryParams {
     lang: Option<String>,
     category: Option<String>,
     tag: Option<String>,
+    order_by: Option<OrderBy>,
+    order: Option<Order>,
+}
+
+impl GetPostsQueryParams {
+    pub fn to_queries(&self, fb: &FieldGetter) -> Vec<(Occur, Box<dyn Query>)> {
+        [
+            self.lang.to_owned(),
+            self.category.to_owned(),
+            self.tag.to_owned(),
+        ]
+        .into_iter()
+        .flatten()
+        .zip(&[PostField::Lang, PostField::Category, PostField::Tags])
+        .map(|(val, &pf)| {
+            let field = fb.get_field(pf);
+            let q: Box<dyn Query> = Box::new(TermQuery::new(
+                Term::from_field_text(field, &val),
+                IndexRecordOption::Basic,
+            ));
+            (Occur::Must, q)
+        })
+        .collect()
+    }
+
+    pub fn order_by(&self) -> Option<OrderBy> {
+        self.order_by.to_owned()
+    }
+
+    pub fn get_order(&self) -> Order {
+        self.order.to_owned().unwrap_or(Order::Desc)
+    }
 }
 
 #[get("/posts")]
@@ -39,50 +79,36 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     };
 
-    let mut queries = vec![];
-    if let Some(lang) = params.lang.to_owned() {
-        let lang_field = fb.get_field(PostField::Lang);
-        let term = Term::from_field_text(lang_field, &lang);
-        let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
-        queries.push((Occur::Must, query));
-    }
-
-    if let Some(category) = params.category.to_owned() {
-        let category_field = fb.get_field(PostField::Category);
-        let term = Term::from_field_text(category_field, &category);
-        let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
-
-        queries.push((Occur::Must, query));
-    }
-
-    if let Some(tag) = params.tag.to_owned() {
-        let tag_field = fb.get_field(PostField::Tags);
-        let term = Term::from_field_text(tag_field, &tag);
-        let query: Box<dyn Query> = Box::new(TermQuery::new(term, IndexRecordOption::Basic));
-
-        queries.push((Occur::Must, query));
-    }
+    let queries = params.to_queries(&fb);
 
     let __docs = if queries.is_empty() {
         let q: Box<dyn Query> = Box::new(AllQuery {});
-        get_all(&q, index.deref())
+        get_all(&q, index.deref(), params.order_by())
     } else {
         let q: Box<dyn Query> = Box::new(BooleanQuery::new(queries));
-        get_all(&q, index.deref())
+        get_all(&q, index.deref(), params.order_by())
     };
 
     let _docs = match __docs {
         Ok(_docs) => _docs,
-        Err(_) => return HttpResponse::InternalServerError().body("Internal Server Error"),
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().body(format!("Internal Server Error"));
+        }
     };
 
-    let docs = if let Some(docs) = _docs {
+    let mut docs = if let Some(docs) = _docs {
         docs.iter()
             .map(|doc| index.schema().to_named_doc(doc))
             .collect_vec()
     } else {
         Vec::new()
     };
+
+    match params.get_order() {
+        Order::Asc => docs.reverse(),
+        Order::Desc => {}
+    }
 
     HttpResponse::Ok().json(docs)
 }

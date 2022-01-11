@@ -1,32 +1,61 @@
 use anyhow::{anyhow, Result};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
+use serde::Deserialize;
 use tantivy::{
     collector::{Count, TopDocs},
     query::{AllQuery, Query, QueryParser, TermQuery},
     schema::Field,
-    Document, Index, IndexWriter, Term,
+    DocAddress, Document, Index, IndexWriter, Term,
 };
 
 use crate::posts::Post;
 
 use super::schema::{FieldGetter, PostField};
 
-pub fn get_all(query: &dyn Query, index: &Index) -> Result<Option<Vec<Document>>> {
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub enum OrderBy {
+    CreatedAt,
+    UpdatedAt,
+}
+
+pub fn get_all(
+    query: &dyn Query,
+    index: &Index,
+    order_by: Option<OrderBy>,
+) -> Result<Option<Vec<Document>>> {
+    let schema = index.schema();
     let searcher = index.reader()?.searcher();
     let counter = Count {};
     let count = searcher.search(query, &counter)?;
 
+    let fb = FieldGetter::new(&schema);
     if count == 0 {
         return Ok(None);
     }
-    let docs = searcher.search(query, &TopDocs::with_limit(count))?;
 
-    Ok(Some(
-        docs.into_iter()
+    let docs = if let Some(order_by) = order_by {
+        let collector =
+            match order_by {
+                OrderBy::CreatedAt => TopDocs::with_limit(count)
+                    .order_by_fast_field(fb.get_field(PostField::CreatedAt)),
+                OrderBy::UpdatedAt => TopDocs::with_limit(count)
+                    .order_by_fast_field(fb.get_field(PostField::UpdatedAt)),
+            };
+        searcher
+            .search(query, &collector)?
+            .into_iter()
+            .flat_map(|doc: (DateTime<Utc>, DocAddress)| searcher.doc(doc.1).ok())
+            .collect()
+    } else {
+        searcher
+            .search(query, &TopDocs::with_limit(count))?
+            .into_iter()
             .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
-            .collect(),
-    ))
+            .collect()
+    };
+
+    Ok(Some(docs))
 }
 
 pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String>)> {
@@ -34,7 +63,7 @@ pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String
     let schema = index.schema();
     let fq = FieldGetter::new(&schema);
 
-    let _docs = get_all(&q, index)?;
+    let _docs = get_all(&q, index, None)?;
     let tag_field = fq.get_field(PostField::Tags);
     let category_field = fq.get_field(PostField::Category);
 
