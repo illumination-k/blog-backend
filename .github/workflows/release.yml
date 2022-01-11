@@ -1,24 +1,21 @@
 name: Release
 
-on:
-  push
+on: push
 
 jobs:
   build:
     name: Release binary
-    env:
-      name: "smark"
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: ${{ env.name }}
-            asset_name: ${{ env.name }}-x86_64-unknown-linux-gnu
+            artifact_name: smark
+            asset_name: smark-x86_64-unknown-linux-gnu
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: ${{ env.name }}
-            asset_name: ${{ env.name }}-x86_64-unknown-linux-musl
+            artifact_name: smark
+            asset_name: smark-x86_64-unknown-linux-musl
 
     runs-on: ${{ matrix.os }}
 
@@ -48,7 +45,7 @@ jobs:
       - name: Test musl build with all features
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true 
+          use-cross: true
           command: build
           args: --release --target ${{ matrix.target }}
 
