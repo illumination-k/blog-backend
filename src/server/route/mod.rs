@@ -1,4 +1,5 @@
 pub mod posts;
+pub mod search;
 
 use super::{CategoryList, TagList};
 

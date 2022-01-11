@@ -1,5 +1,3 @@
-pub mod search;
-
 use actix_web::{get, web, HttpRequest, HttpResponse};
 use itertools::Itertools;
 use serde::Deserialize;
