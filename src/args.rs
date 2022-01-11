@@ -32,7 +32,7 @@ pub enum SubCommands {
     Prep {
         #[structopt(short = "-i", long = "input")]
         input: PathBuf,
-        #[structopt(long = "index_dir")]
+        #[structopt(long = "index-dir")]
         index_dir: PathBuf,
         #[structopt(long = "rebuild")]
         rebuild: bool,
@@ -65,7 +65,7 @@ pub enum SubCommands {
     Dump {
         #[structopt(short = "-o", long = "outdir")]
         outdir: PathBuf,
-        #[structopt(long = "index_dir")]
+        #[structopt(long = "index-dir")]
         index_dir: PathBuf,
     },
 }
