@@ -15,7 +15,7 @@ pub struct SearchQueryParams {
     limit: Option<usize>,
 }
 
-#[get("/posts/search")]
+#[get("/search")]
 async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
     let params = web::Query::<SearchQueryParams>::from_query(req.query_string()).unwrap();

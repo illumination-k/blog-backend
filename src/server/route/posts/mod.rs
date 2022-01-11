@@ -11,9 +11,18 @@ use tantivy::{
 };
 
 use crate::text_engine::{
-    query::get_all,
+    query::{get_all, get_by_uuid},
     schema::{FieldGetter, PostField},
 };
+
+#[get("/posts/{uuid}")]
+async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> HttpResponse {
+    let schema = index.schema();
+    match get_by_uuid(&uuid.to_owned(), index.into_inner().deref()) {
+        Ok(doc) => HttpResponse::Ok().json(schema.to_named_doc(&doc)),
+        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct GetPostsQueryParams {

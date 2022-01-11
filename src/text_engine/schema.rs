@@ -93,6 +93,23 @@ impl SchemaConstructor {
             );
         })
     }
+
+    pub fn build_custom_tokenizer_text_field_no_stored(
+        &mut self,
+        tokenizer_name: &str,
+        fields: &[PostField],
+    ) {
+        fields.iter().for_each(|field| {
+            self.schema_builder.add_text_field(
+                field.as_str(),
+                TextOptions::default().set_indexing_options(
+                    TextFieldIndexing::default()
+                        .set_tokenizer(tokenizer_name)
+                        .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+                ),
+            );
+        })
+    }
 }
 
 pub fn build_schema() -> Schema {
@@ -110,7 +127,11 @@ pub fn build_schema() -> Schema {
     );
     constructor.build_custom_tokenizer_text_field(
         &Lang::Ja.tokenizer_name(),
-        &[PostField::Title, PostField::Description, PostField::RawText],
+        &[PostField::Title, PostField::Description],
+    );
+    constructor.build_custom_tokenizer_text_field_no_stored(
+        &Lang::Ja.tokenizer_name(),
+        &[PostField::RawText],
     );
     constructor.build_date_fields(&[PostField::CreatedAt, PostField::UpdatedAt]);
 
