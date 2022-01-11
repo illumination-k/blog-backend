@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use tantivy::schema::*;
-use tantivy::{doc, DateTime};
+use tantivy::{DateTime};
 
 use crate::markdown::{
     extract_text::extract_text,
@@ -16,16 +16,7 @@ use crate::markdown::{
 };
 
 use crate::io::read_string;
-
-fn need_field(s: &str) -> String {
-    format!("{} is need in schema", s)
-}
-
-pub fn get_field(field_name: &str, schema: &Schema) -> Field {
-    schema
-        .get_field(field_name)
-        .unwrap_or_else(|| panic!("{}", need_field(field_name)))
-}
+use crate::text_engine::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Lang {
@@ -97,6 +88,10 @@ impl Post {
         self.matter.updated_at()
     }
 
+    pub fn raw_text(&self) -> String {
+        self.raw_text.clone()
+    }
+
     /// **CAUSION!**  
     /// This function do not return strict equal.
     /// If updated_at and created_at in `self.matter` is `None`,
@@ -131,32 +126,20 @@ impl Post {
         }
     }
 
-    pub fn from_doc(doc: &Document, schema: &Schema) -> Self {
-        fn get_text(doc: &Document, field_name: &str, schema: &Schema) -> String {
-            let field = get_field(field_name, schema);
-            doc.get_first(field).unwrap().text().unwrap().to_string()
-        }
+    pub fn from_doc(doc: &Document, schema: &Schema) -> Result<Self> {
+        let fb = FieldGetter::new(schema);
 
-        fn get_date(doc: &Document, field_name: &str, schema: &Schema) -> DateTime {
-            let field = get_field(field_name, schema);
-            doc.get_first(field)
-                .unwrap()
-                .date_value()
-                .unwrap()
-                .to_owned()
-        }
-
-        let uuid = get_text(doc, "uuid", schema);
-        let slug = get_text(doc, "slug", schema);
-        let title = get_text(doc, "title", schema);
-        let description = get_text(doc, "description", schema);
-        let body = get_text(doc, "body", schema);
-        let lang = get_text(doc, "lang", schema);
-        let category = get_text(doc, "category", schema);
-        let tags = get_text(doc, "tags", schema);
-        let raw_text = get_text(doc, "raw_text", schema);
-        let created_at = get_date(doc, "created_at", schema);
-        let updated_at = get_date(doc, "updated_at", schema);
+        let uuid = fb.get_text(doc, PostField::Uuid)?;
+        let slug =fb.get_text(doc, PostField::Slug)?;
+        let title = fb.get_text(doc, PostField::Title)?;
+        let description = fb.get_text(doc, PostField::Description)?;
+        let body = fb.get_text(doc, PostField::Body)?;
+        let lang = fb.get_text(doc, PostField::Lang)?;
+        let category = fb.get_text(doc, PostField::Category)?;
+        let tags = fb.get_text(doc, PostField::Tags)?;
+        let raw_text = fb.get_text(doc, PostField::RawText)?;
+        let created_at = fb.get_date(doc, PostField::CreatedAt)?;
+        let updated_at =fb.get_date(doc, PostField::UpdatedAt)?;
 
         let tags = if tags.is_empty() {
             None
@@ -169,7 +152,7 @@ impl Post {
             )
         };
 
-        Self {
+        Ok(Self {
             slug,
             body,
             raw_text,
@@ -183,7 +166,7 @@ impl Post {
                 Some(created_at),
                 Some(updated_at),
             ),
-        }
+        })
     }
 
     pub fn to_doc(
@@ -192,35 +175,31 @@ impl Post {
         created_at: &DateTime,
         updated_at: &DateTime,
     ) -> Document {
-        let uuid = get_field("uuid", schema);
-        let slug = get_field("slug", schema);
-        let title = get_field("title", schema);
-        let description = get_field("description", schema);
-        let body = get_field("body", schema);
-        let lang = get_field("lang", schema);
-        let category = get_field("category", schema);
-        let tags = get_field("tags", schema);
-        let raw_text = get_field("raw_text", schema);
+        let fb = FieldGetter::new(schema);
+        let mut doc = Document::new();
 
-        let tag_val = match self.matter.tags() {
+        [
+            (PostField::Uuid, self.uuid()),
+            (PostField::Slug, self.slug()),
+            (PostField::Title, self.title()),
+            (PostField::Description, self.matter.description()),
+            (PostField::Body, self.body()),
+            (PostField::Lang, self.lang().as_str().to_string()),
+            (PostField::Category, self.matter.category()),
+            (PostField::RawText, self.raw_text()),
+        ].into_iter().for_each(|(pf,text)| doc.add_text(fb.get_field(pf), text));
+
+        let tags = fb.get_field(PostField::Tags);
+
+        let tag_text = match self.matter.tags() {
             Some(tags) => tags.join(" "),
             None => "".to_string(),
         };
 
-        let mut doc = doc!(
-            uuid => self.uuid(),
-            slug => self.slug.clone(),
-            title => self.matter.title(),
-            description => self.matter.description(),
-            body => self.body.clone(),
-            lang => self.matter.lang().as_str(),
-            category => self.matter.category(),
-            tags => tag_val,
-            raw_text => self.raw_text.clone(),
-        );
+        doc.add_text(tags, tag_text);
 
-        doc.add_date(get_field("created_at", schema), created_at);
-        doc.add_date(get_field("updated_at", schema), updated_at);
+        doc.add_date(fb.get_field(PostField::CreatedAt), created_at);
+        doc.add_date(fb.get_field(PostField::UpdatedAt), updated_at);
 
         doc
     }

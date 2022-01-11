@@ -18,9 +18,10 @@ pub struct SearchQueryParams {
 #[get("/search")]
 async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
+    let schema = index.schema();
     let params = web::Query::<SearchQueryParams>::from_query(req.query_string()).unwrap();
 
-    let fb = FieldGetter::new(index.schema());
+    let fb = FieldGetter::new(&schema);
     let fields = [PostField::Title, PostField::Description, PostField::RawText]
         .into_iter()
         .map(|pf| fb.get_field(pf))

@@ -35,7 +35,7 @@ pub struct GetPostsQueryParams {
 async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
     let schema = index.schema();
-    let fb = FieldGetter::new(schema);
+    let fb = FieldGetter::new(&schema);
     let params = web::Query::<GetPostsQueryParams>::from_query(req.query_string()).unwrap();
 
     let mut queries = vec![];
