@@ -73,7 +73,7 @@ fn main() -> Result<()> {
             )?;
         }
         SubCommands::Template {} => {
-            println!("{}", template());
+            print!("{}", template()?);
         }
 
         SubCommands::Dump { outdir, index_dir } => {
