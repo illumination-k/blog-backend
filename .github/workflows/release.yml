@@ -40,7 +40,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           load: true
-          tags: illumination27/${{ martrix.target }}
+          tags: illumination27/${{ matrix.target }}
 
       - name: Test musl build with all features
         uses: actions-rs/cargo@v1
