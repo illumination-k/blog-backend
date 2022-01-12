@@ -93,7 +93,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         Ok(_docs) => _docs,
         Err(e) => {
             error!("{:?}", e);
-            return HttpResponse::InternalServerError().body(format!("Internal Server Error"));
+            return HttpResponse::InternalServerError().body("Internal Server Error");
         }
     };
 

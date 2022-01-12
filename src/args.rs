@@ -6,7 +6,7 @@ use structopt::{clap, clap::arg_enum, StructOpt};
 #[structopt(long_version(option_env!("LONG_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"))))]
 #[structopt(setting(clap::AppSettings::ColoredHelp))]
 pub struct Opt {
-    #[structopt(long = "log", possible_values(&LogLevel::variants()))]
+    #[structopt(long = "log-level", possible_values(&LogLevel::variants()))]
     pub log_level: Option<LogLevel>,
     #[structopt(subcommand)]
     pub subcommand: SubCommands,
@@ -49,13 +49,18 @@ pub enum SubCommands {
         index_dir: PathBuf,
         #[structopt(long = "cors-origin")]
         _cors_origin: Option<String>,
-        #[structopt(long = "static-dir")]
+        #[structopt(long = "static-dir", aliases = &["static", "public", "public-dir"])]
         static_dir: PathBuf,
     },
 
     #[structopt(name = "template", about = "stdout markdown template")]
     #[structopt(setting(clap::AppSettings::ColoredHelp))]
-    Template {},
+    Template {
+        #[structopt(short = "-d", long = "with-date")]
+        with_date: bool,
+        #[structopt(short = "f", long = "datetime-format")]
+        datetime_format: Option<String>,
+    },
 
     #[structopt(
         name = "dump",

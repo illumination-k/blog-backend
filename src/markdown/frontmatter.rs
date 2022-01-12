@@ -1,10 +1,43 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use yaml_rust::{Yaml, YamlLoader};
 
-use crate::posts::Lang;
+use crate::{
+    posts::Lang,
+    text_engine::datetime::{parse_datetime, DateTimeFormat},
+};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DateTimeWithFormat {
+    datetime: DateTime<Utc>,
+    format: DateTimeFormat,
+}
+
+impl DateTimeWithFormat {
+    pub fn new(datetime: DateTime<Utc>, format: DateTimeFormat) -> Self {
+        Self { datetime, format }
+    }
+
+    pub fn now(format: &DateTimeFormat) -> Self {
+        Self::new(Utc::now(), format.to_owned())
+    }
+
+    pub fn datetime(&self) -> DateTime<Utc> {
+        self.datetime
+    }
+
+    pub fn format(&self) -> DateTimeFormat {
+        self.format.clone()
+    }
+}
+
+impl ToString for DateTimeWithFormat {
+    fn to_string(&self) -> String {
+        self.format.format(self.datetime)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FrontMatter {
@@ -14,8 +47,8 @@ pub struct FrontMatter {
     lang: Lang,
     category: String,
     tags: Option<Vec<String>>,
-    created_at: Option<DateTime<Utc>>,
-    updated_at: Option<DateTime<Utc>>,
+    created_at: Option<DateTimeWithFormat>,
+    updated_at: Option<DateTimeWithFormat>,
 }
 
 impl FrontMatter {
@@ -27,8 +60,8 @@ impl FrontMatter {
         category: S,
         lang: Lang,
         tags: Option<Vec<String>>,
-        created_at: Option<DateTime<Utc>>,
-        updated_at: Option<DateTime<Utc>>,
+        created_at: Option<DateTimeWithFormat>,
+        updated_at: Option<DateTimeWithFormat>,
     ) -> Self {
         Self {
             uuid: uuid.to_string(),
@@ -65,12 +98,12 @@ impl FrontMatter {
         self.category.clone()
     }
 
-    pub fn created_at(&self) -> Option<DateTime<Utc>> {
-        self.created_at
+    pub fn created_at(&self) -> Option<DateTimeWithFormat> {
+        self.created_at.to_owned()
     }
 
-    pub fn updated_at(&self) -> Option<DateTime<Utc>> {
-        self.updated_at
+    pub fn updated_at(&self) -> Option<DateTimeWithFormat> {
+        self.updated_at.to_owned()
     }
 
     /// **CAUSION!**  
@@ -114,9 +147,15 @@ impl FrontMatter {
         .into_iter()
         .collect();
 
-        let opmap: LinkedHashMap<&str, Option<DateTime<Utc>>> = [
-            ("created_at", self.created_at),
-            ("updated_at", self.updated_at),
+        let opmap: LinkedHashMap<&str, Option<String>> = [
+            (
+                "created_at",
+                self.created_at.to_owned().map(|c| c.to_string()),
+            ),
+            (
+                "updated_at",
+                self.updated_at.to_owned().map(|u| u.to_string()),
+            ),
         ]
         .into_iter()
         .collect();
@@ -134,12 +173,8 @@ impl FrontMatter {
         }
 
         for (k, v) in opmap.into_iter() {
-            if let Some(datetime) = v {
-                insert_to_yamlmap(
-                    k,
-                    datetime.to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
-                    &mut lm,
-                );
+            if let Some(v) = v {
+                insert_to_yamlmap(k, v, &mut lm);
             }
         }
 
@@ -189,19 +224,19 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
         _ => panic!("Unsupported lang type. Lang must be string"),
     };
 
-    let created_at = doc["created_at"].as_str().map(|s| {
-        match DateTime::parse_from_rfc3339(s).with_context(|| "created at should be rfc3339") {
-            Ok(date) => date.into(),
+    let created_at = doc["created_at"]
+        .as_str()
+        .map(|s| match parse_datetime(s, None) {
+            Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
             Err(e) => panic!("{}", e),
-        }
-    });
+        });
 
-    let updated_at = doc["updated_at"].as_str().map(|s| {
-        match DateTime::parse_from_rfc3339(s).with_context(|| "updated at should be rfc3339") {
-            Ok(date) => date.into(),
+    let updated_at = doc["updated_at"]
+        .as_str()
+        .map(|s| match parse_datetime(s, None) {
+            Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
             Err(e) => panic!("{}", e),
-        }
-    });
+        });
 
     Ok(FrontMatter::new(
         uuid,
@@ -346,7 +381,8 @@ tags:
                 }
                 TestCase::UpdatedAt => {
                     let mut updated_frontmatter_with_date = frontmatter_with_date.clone();
-                    updated_frontmatter_with_date.updated_at = Some(Utc::now());
+                    updated_frontmatter_with_date.updated_at =
+                        Some(DateTimeWithFormat::new(Utc::now(), DateTimeFormat::RFC3339));
                     assert!(!frontmatter_with_date
                         .equal_matter_from_doc(&updated_frontmatter_with_date));
                 }

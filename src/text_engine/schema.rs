@@ -16,6 +16,8 @@ pub enum PostField {
     RawText,
     CreatedAt,
     UpdatedAt,
+    CreatedAtFormat,
+    UpdatedAtFormat,
 }
 
 impl PostField {
@@ -32,10 +34,12 @@ impl PostField {
             PostField::RawText => "raw_text",
             PostField::CreatedAt => "created_at",
             PostField::UpdatedAt => "updated_at",
+            PostField::CreatedAtFormat => "created_at_format",
+            PostField::UpdatedAtFormat => "updated_at_format",
         }
     }
 
-    pub fn text_fields() -> [Self; 9] {
+    pub fn text_fields() -> [Self; 10] {
         [
             PostField::Uuid,
             PostField::Slug,
@@ -45,12 +49,17 @@ impl PostField {
             PostField::Category,
             PostField::Tags,
             PostField::Body,
-            PostField::RawText,
+            PostField::CreatedAtFormat,
+            PostField::UpdatedAtFormat,
         ]
     }
 
     pub fn date_fields() -> [Self; 2] {
         [PostField::CreatedAt, PostField::UpdatedAt]
+    }
+
+    pub fn not_stored_fileds() -> [Self; 1] {
+        [PostField::RawText]
     }
 }
 
@@ -77,12 +86,15 @@ impl<'a> FieldGetter<'a> {
     }
 
     pub fn get_text(&self, doc: &Document, field: PostField) -> Result<String> {
+        if PostField::not_stored_fileds().contains(&field) {
+            return Err(anyhow!(format!("{} is not stored field", field.as_str())));
+        }
         if PostField::text_fields().contains(&field) {
             Ok(doc
                 .get_first(self.get_field(field))
-                .unwrap()
+                .unwrap_or_else(|| panic!("Error in get text with {}", field.as_str()))
                 .text()
-                .unwrap()
+                .unwrap_or_else(|| panic!("Error in get text with {}", field.as_str()))
                 .to_string())
         } else {
             Err(anyhow!(format!("{} is not text field", field.as_str())))
@@ -90,12 +102,15 @@ impl<'a> FieldGetter<'a> {
     }
 
     pub fn get_date(&self, doc: &Document, field: PostField) -> Result<DateTime<Utc>> {
+        if PostField::not_stored_fileds().contains(&field) {
+            return Err(anyhow!(format!("{} is not stored field", field.as_str())));
+        }
         if PostField::date_fields().contains(&field) {
             Ok(doc
                 .get_first(self.get_field(field))
-                .unwrap()
+                .unwrap_or_else(|| panic!("Error in get date with {}", field.as_str()))
                 .date_value()
-                .unwrap()
+                .unwrap_or_else(|| panic!("Error in get date with {}", field.as_str()))
                 .to_owned())
         } else {
             Err(anyhow!(format!("{} is not date field", field.as_str())))
@@ -184,7 +199,12 @@ impl SchemaConstructor {
 pub fn build_schema() -> Schema {
     let mut constructor = SchemaConstructor::new();
 
-    constructor.build_simple_text_fields(&[PostField::Body, PostField::Tags]);
+    constructor.build_simple_text_fields(&[
+        PostField::Body,
+        PostField::Tags,
+        PostField::CreatedAtFormat,
+        PostField::UpdatedAtFormat,
+    ]);
     constructor.build_custom_tokenizer_text_field(
         "raw_tokenizer",
         &[
