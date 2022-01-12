@@ -20,6 +20,10 @@ impl DateTimeWithFormat {
         Self { datetime, format }
     }
 
+    pub fn now(format: &DateTimeFormat) -> Self {
+        Self::new(Utc::now(), format.to_owned())
+    }
+
     pub fn datetime(&self) -> DateTime<Utc> {
         self.datetime
     }
