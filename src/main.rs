@@ -72,7 +72,10 @@ fn main() -> Result<()> {
                 _cors_origin.to_owned(),
             )?;
         }
-        SubCommands::Template {with_date, datetime_format} => {
+        SubCommands::Template {
+            with_date,
+            datetime_format,
+        } => {
             print!("{}", template(with_date, datetime_format)?);
         }
 

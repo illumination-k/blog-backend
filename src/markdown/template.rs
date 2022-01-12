@@ -1,6 +1,9 @@
 use uuid::Uuid;
 
-use super::{dump::dump_matter, frontmatter::{FrontMatter, DateTimeWithFormat}};
+use super::{
+    dump::dump_matter,
+    frontmatter::{DateTimeWithFormat, FrontMatter},
+};
 use crate::{posts::Lang, text_engine::datetime::DateTimeFormat};
 use anyhow::Result;
 
@@ -12,7 +15,10 @@ pub fn template(with_date: &bool, datetime_format: &Option<String>) -> Result<St
     };
 
     let (created_at, updated_at) = if *with_date {
-        (Some(DateTimeWithFormat::now(&fmt)), Some(DateTimeWithFormat::now(&fmt)))
+        (
+            Some(DateTimeWithFormat::now(&fmt)),
+            Some(DateTimeWithFormat::now(&fmt)),
+        )
     } else {
         (None, None)
     };
