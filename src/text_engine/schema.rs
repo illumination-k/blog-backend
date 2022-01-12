@@ -16,6 +16,8 @@ pub enum PostField {
     RawText,
     CreatedAt,
     UpdatedAt,
+    CreatedAtFormat,
+    UpdatedAtFormat,
 }
 
 impl PostField {
@@ -32,10 +34,12 @@ impl PostField {
             PostField::RawText => "raw_text",
             PostField::CreatedAt => "created_at",
             PostField::UpdatedAt => "updated_at",
+            PostField::CreatedAtFormat => "created_at_format",
+            PostField::UpdatedAtFormat => "updated_at_format"
         }
     }
 
-    pub fn text_fields() -> [Self; 9] {
+    pub fn text_fields() -> [Self; 11] {
         [
             PostField::Uuid,
             PostField::Slug,
@@ -46,6 +50,8 @@ impl PostField {
             PostField::Tags,
             PostField::Body,
             PostField::RawText,
+            PostField::CreatedAtFormat,
+            PostField::UpdatedAtFormat,
         ]
     }
 
@@ -184,7 +190,12 @@ impl SchemaConstructor {
 pub fn build_schema() -> Schema {
     let mut constructor = SchemaConstructor::new();
 
-    constructor.build_simple_text_fields(&[PostField::Body, PostField::Tags]);
+    constructor.build_simple_text_fields(&[
+        PostField::Body,
+        PostField::Tags,
+        PostField::CreatedAtFormat,
+        PostField::UpdatedAtFormat,
+    ]);
     constructor.build_custom_tokenizer_text_field(
         "raw_tokenizer",
         &[

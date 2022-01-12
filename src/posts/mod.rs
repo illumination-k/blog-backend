@@ -8,14 +8,15 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use tantivy::schema::*;
-use tantivy::DateTime;
 
+use crate::markdown::frontmatter::DateTimeWithFormat;
 use crate::markdown::{
     extract_text::extract_text,
     frontmatter::{split_frontmatter_and_content, FrontMatter},
 };
 
 use crate::io::read_string;
+use crate::text_engine::datetime::DateTimeFormat;
 use crate::text_engine::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,11 +81,11 @@ impl Post {
         self.matter.to_owned()
     }
 
-    pub fn created_at(&self) -> Option<DateTime> {
+    pub fn created_at(&self) -> Option<DateTimeWithFormat> {
         self.matter.created_at()
     }
 
-    pub fn updated_at(&self) -> Option<DateTime> {
+    pub fn updated_at(&self) -> Option<DateTimeWithFormat> {
         self.matter.updated_at()
     }
 
@@ -140,7 +141,8 @@ impl Post {
         let raw_text = fb.get_text(doc, PostField::RawText)?;
         let created_at = fb.get_date(doc, PostField::CreatedAt)?;
         let updated_at = fb.get_date(doc, PostField::UpdatedAt)?;
-
+        let created_at_format = DateTimeFormat::from(fb.get_text(doc, PostField::CreatedAtFormat)?.as_str());
+        let updated_at_format = DateTimeFormat::from(fb.get_text(doc, PostField::UpdatedAtFormat)?.as_str());
         let tags = if tags.is_empty() {
             None
         } else {
@@ -163,8 +165,8 @@ impl Post {
                 category,
                 Lang::from_str(&lang).unwrap(),
                 tags,
-                Some(created_at),
-                Some(updated_at),
+                Some(DateTimeWithFormat::new(created_at, created_at_format)),
+                Some(DateTimeWithFormat::new(updated_at, updated_at_format)),
             ),
         })
     }
@@ -172,8 +174,8 @@ impl Post {
     pub fn to_doc(
         &self,
         schema: &Schema,
-        created_at: &DateTime,
-        updated_at: &DateTime,
+        created_at: &DateTimeWithFormat,
+        updated_at: &DateTimeWithFormat,
     ) -> Document {
         let fb = FieldGetter::new(schema);
         let mut doc = Document::new();
@@ -187,6 +189,8 @@ impl Post {
             (PostField::Lang, self.lang().as_str().to_string()),
             (PostField::Category, self.matter.category()),
             (PostField::RawText, self.raw_text()),
+            (PostField::CreatedAtFormat, created_at.format().to_string()),
+            (PostField::UpdatedAtFormat, updated_at.format().to_string())
         ]
         .into_iter()
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
@@ -200,8 +204,8 @@ impl Post {
 
         doc.add_text(tags, tag_text);
 
-        doc.add_date(fb.get_field(PostField::CreatedAt), created_at);
-        doc.add_date(fb.get_field(PostField::UpdatedAt), updated_at);
+        doc.add_date(fb.get_field(PostField::CreatedAt), &created_at.datetime());
+        doc.add_date(fb.get_field(PostField::UpdatedAt), &updated_at.datetime());
 
         doc
     }

@@ -9,9 +9,10 @@ use tantivy::{
     DocAddress, Document, Index, IndexWriter, Term,
 };
 
-use crate::posts::Post;
+use crate::{posts::Post, markdown::frontmatter::DateTimeWithFormat};
 
 use super::schema::{FieldGetter, PostField};
+use super::datetime::DateTimeFormat;
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub enum OrderBy {
@@ -123,6 +124,7 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
 
 pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
     let now = Utc::now();
+    let now_with_format = DateTimeWithFormat::new(now, DateTimeFormat::RFC3339);
     let schema = index.schema();
     let fb = FieldGetter::new(&schema);
     let new_doc = match get_by_uuid(&post.uuid(), index) {
@@ -138,14 +140,12 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
             let created_at = if let Some(created_at) = post.matter().created_at() {
                 created_at
             } else {
-                doc.get_first(fb.get_field(PostField::CreatedAt))
-                    .unwrap()
-                    .date_value()
-                    .unwrap()
-                    .to_owned()
+                let datetime = fb.get_date(&doc, PostField::CreatedAt)?;
+                let format = fb.get_text(&doc, PostField::CreatedAtFormat)?;
+                DateTimeWithFormat::new(datetime, DateTimeFormat::from(format.as_str()))
             };
 
-            let new_doc = post.to_doc(&index.schema(), &created_at, &now);
+            let new_doc = post.to_doc(&schema, &created_at, &now_with_format);
             index_writer.delete_term(Term::from_field_text(uuid_field, &post.uuid()));
             index_writer.add_document(new_doc.clone());
             new_doc
@@ -155,13 +155,13 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
             let created_at = if let Some(c) = post.created_at() {
                 c
             } else {
-                now
+                now_with_format.clone()
             };
 
             let updated_at = if let Some(u) = post.updated_at() {
                 u
             } else {
-                now
+                now_with_format
             };
 
             let new_doc = post.to_doc(&index.schema(), &created_at, &updated_at);
