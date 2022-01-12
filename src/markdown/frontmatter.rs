@@ -144,8 +144,14 @@ impl FrontMatter {
         .collect();
 
         let opmap: LinkedHashMap<&str, Option<String>> = [
-            ("created_at", self.created_at.to_owned().map(|c| c.to_string())),
-            ("updated_at", self.updated_at.to_owned().map(|u| u.to_string())),
+            (
+                "created_at",
+                self.created_at.to_owned().map(|c| c.to_string()),
+            ),
+            (
+                "updated_at",
+                self.updated_at.to_owned().map(|u| u.to_string()),
+            ),
         ]
         .into_iter()
         .collect();

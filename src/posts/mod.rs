@@ -141,8 +141,10 @@ impl Post {
 
         let created_at = fb.get_date(doc, PostField::CreatedAt)?;
         let updated_at = fb.get_date(doc, PostField::UpdatedAt)?;
-        let created_at_format = DateTimeFormat::from(fb.get_text(doc, PostField::CreatedAtFormat)?.as_str());
-        let updated_at_format = DateTimeFormat::from(fb.get_text(doc, PostField::UpdatedAtFormat)?.as_str());
+        let created_at_format =
+            DateTimeFormat::from(fb.get_text(doc, PostField::CreatedAtFormat)?.as_str());
+        let updated_at_format =
+            DateTimeFormat::from(fb.get_text(doc, PostField::UpdatedAtFormat)?.as_str());
         let tags = if tags.is_empty() {
             None
         } else {
@@ -189,7 +191,7 @@ impl Post {
             (PostField::Lang, self.lang().as_str().to_string()),
             (PostField::Category, self.matter.category()),
             (PostField::CreatedAtFormat, created_at.format().to_string()),
-            (PostField::UpdatedAtFormat, updated_at.format().to_string())
+            (PostField::UpdatedAtFormat, updated_at.format().to_string()),
         ]
         .into_iter()
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
@@ -197,7 +199,7 @@ impl Post {
         if let Some(raw_text) = self.raw_text() {
             doc.add_text(fb.get_field(PostField::RawText), raw_text);
         }
-        
+
         let tags = fb.get_field(PostField::Tags);
 
         let tag_text = match self.matter.tags() {

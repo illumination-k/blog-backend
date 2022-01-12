@@ -9,10 +9,10 @@ use tantivy::{
     DocAddress, Document, Index, IndexWriter, Term,
 };
 
-use crate::{posts::Post, markdown::frontmatter::DateTimeWithFormat};
+use crate::{markdown::frontmatter::DateTimeWithFormat, posts::Post};
 
-use super::schema::{FieldGetter, PostField};
 use super::datetime::DateTimeFormat;
+use super::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub enum OrderBy {

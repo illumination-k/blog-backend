@@ -35,7 +35,7 @@ impl PostField {
             PostField::CreatedAt => "created_at",
             PostField::UpdatedAt => "updated_at",
             PostField::CreatedAtFormat => "created_at_format",
-            PostField::UpdatedAtFormat => "updated_at_format"
+            PostField::UpdatedAtFormat => "updated_at_format",
         }
     }
 
@@ -87,7 +87,7 @@ impl<'a> FieldGetter<'a> {
 
     pub fn get_text(&self, doc: &Document, field: PostField) -> Result<String> {
         if PostField::not_stored_fileds().contains(&field) {
-            return Err(anyhow!(format!("{} is not stored field", field.as_str())))
+            return Err(anyhow!(format!("{} is not stored field", field.as_str())));
         }
         if PostField::text_fields().contains(&field) {
             Ok(doc
@@ -103,7 +103,7 @@ impl<'a> FieldGetter<'a> {
 
     pub fn get_date(&self, doc: &Document, field: PostField) -> Result<DateTime<Utc>> {
         if PostField::not_stored_fileds().contains(&field) {
-            return Err(anyhow!(format!("{} is not stored field", field.as_str())))
+            return Err(anyhow!(format!("{} is not stored field", field.as_str())));
         }
         if PostField::date_fields().contains(&field) {
             Ok(doc
