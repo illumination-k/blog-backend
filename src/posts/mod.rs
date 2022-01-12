@@ -51,7 +51,7 @@ pub struct Post {
     slug: String,
     matter: FrontMatter,
     body: String,
-    raw_text: String,
+    raw_text: Option<String>,
 }
 
 impl Post {
@@ -89,7 +89,7 @@ impl Post {
         self.matter.updated_at()
     }
 
-    pub fn raw_text(&self) -> String {
+    pub fn raw_text(&self) -> Option<String> {
         self.raw_text.clone()
     }
 
@@ -123,7 +123,7 @@ impl Post {
             slug,
             matter: frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path)),
             body: body.to_string(),
-            raw_text,
+            raw_text: Some(raw_text),
         }
     }
 
@@ -138,7 +138,7 @@ impl Post {
         let lang = fb.get_text(doc, PostField::Lang)?;
         let category = fb.get_text(doc, PostField::Category)?;
         let tags = fb.get_text(doc, PostField::Tags)?;
-        let raw_text = fb.get_text(doc, PostField::RawText)?;
+
         let created_at = fb.get_date(doc, PostField::CreatedAt)?;
         let updated_at = fb.get_date(doc, PostField::UpdatedAt)?;
         let created_at_format = DateTimeFormat::from(fb.get_text(doc, PostField::CreatedAtFormat)?.as_str());
@@ -157,7 +157,7 @@ impl Post {
         Ok(Self {
             slug,
             body,
-            raw_text,
+            raw_text: None,
             matter: FrontMatter::new(
                 uuid,
                 title,
@@ -188,13 +188,16 @@ impl Post {
             (PostField::Body, self.body()),
             (PostField::Lang, self.lang().as_str().to_string()),
             (PostField::Category, self.matter.category()),
-            (PostField::RawText, self.raw_text()),
             (PostField::CreatedAtFormat, created_at.format().to_string()),
             (PostField::UpdatedAtFormat, updated_at.format().to_string())
         ]
         .into_iter()
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
 
+        if let Some(raw_text) = self.raw_text() {
+            doc.add_text(fb.get_field(PostField::RawText), raw_text);
+        }
+        
         let tags = fb.get_field(PostField::Tags);
 
         let tag_text = match self.matter.tags() {
