@@ -25,11 +25,10 @@ pub fn write_string<P: AsRef<Path>>(p: &P, string: &str) -> Result<()> {
 }
 
 #[cfg(test)]
-mod test {
+mod test_io {
     use super::*;
     #[test]
     fn not_found() {
-        let err = read_string("not_found.md");
-        dbg!(&err);
+        assert!(read_string("not_found.md").is_err());
     }
 }
