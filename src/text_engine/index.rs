@@ -21,7 +21,14 @@ pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> R
             fs::create_dir(index_dir)?;
             Index::create_in_dir(index_dir, schema)
         } else {
-            Index::open_in_dir(index_dir)
+            let index = Index::open_in_dir(index_dir);
+
+            // if index is not exist in index_dir, we should create new index
+            if index.is_ok() {
+                index
+            } else {
+                Index::create_in_dir(index_dir, schema)
+            }
         }
     } else {
         fs::create_dir(index_dir)?;
@@ -43,4 +50,27 @@ pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> R
     index.tokenizers().register(&tokenizer_name, ja_tokenizer);
 
     Ok(index)
+}
+
+#[cfg(test)]
+mod test_index {
+    use super::read_or_build_index;
+    use crate::build_schema;
+    use tempdir::TempDir;
+
+    #[test]
+    fn test_read_or_buld_index_with_schema() {
+        let temp_dir = TempDir::new("test_read_or_buld_index_with_schema").unwrap();
+
+        let schema = build_schema();
+        let build_no_dir =
+            read_or_build_index(schema.clone(), &temp_dir.path().join("no_index_dir"), false);
+        let build = read_or_build_index(schema.clone(), temp_dir.path(), false);
+        let read = read_or_build_index(schema.clone(), temp_dir.path(), false);
+        let rebuild = read_or_build_index(schema, temp_dir.path(), true);
+        assert!(build_no_dir.is_ok());
+        assert!(build.is_ok());
+        assert!(read.is_ok());
+        assert!(rebuild.is_ok());
+    }
 }

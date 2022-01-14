@@ -106,7 +106,7 @@ impl Post {
             && self.matter.equal_matter_from_doc(&other.matter)
     }
 
-    pub fn from_path(path: &Path) -> Self {
+    pub fn from_path(path: &Path) -> Result<Self> {
         let slug = path
             .file_name()
             .map(rsplit_file_at_dot)
@@ -119,12 +119,12 @@ impl Post {
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
         let raw_text = extract_text(body);
-        Self {
+        Ok(Self {
             slug,
             matter: frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path)),
             body: body.to_string(),
             raw_text: Some(raw_text),
-        }
+        })
     }
 
     pub fn from_doc(doc: &Document, schema: &Schema) -> Result<Self> {

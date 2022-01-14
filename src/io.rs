@@ -25,11 +25,23 @@ pub fn write_string<P: AsRef<Path>>(p: &P, string: &str) -> Result<()> {
 }
 
 #[cfg(test)]
-mod test {
+mod test_io {
     use super::*;
     #[test]
     fn not_found() {
-        let err = read_string("not_found.md");
-        dbg!(&err);
+        assert!(read_string("not_found.md").is_err());
+    }
+
+    #[test]
+    fn test_write_and_read() {
+        let temp_dir = tempdir::TempDir::new("io_test_write_and_read").unwrap();
+        let temp_path = temp_dir.path().join("a.md");
+
+        let write = "aaa\nbbb\n";
+        let res = write_string(&temp_path, write);
+        assert!(res.is_ok());
+        let read = read_string(&temp_path);
+        assert!(read.is_ok());
+        assert_eq!(write, read.unwrap());
     }
 }

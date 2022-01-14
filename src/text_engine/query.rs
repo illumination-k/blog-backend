@@ -62,18 +62,16 @@ pub fn get_all(
 pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String>)> {
     let q: Box<dyn Query> = Box::new(AllQuery {});
     let schema = index.schema();
-    let fq = FieldGetter::new(&schema);
+    let fg = FieldGetter::new(&schema);
 
     let _docs = get_all(&q, index, None)?;
-    let tag_field = fq.get_field(PostField::Tags);
-    let category_field = fq.get_field(PostField::Category);
 
     if let Some(docs) = _docs {
         let (categories_string, tags_string) =
             docs.iter()
                 .fold((String::new(), String::new()), |(categories, tags), doc| {
-                    let category = doc.get_first(category_field).unwrap().text().unwrap();
-                    let inner_tags = doc.get_first(tag_field).unwrap().text().unwrap();
+                    let category = fg.get_text(doc, PostField::Category).expect("err in 75");
+                    let inner_tags = fg.get_text(doc, PostField::Tags).expect("err in 76");
 
                     (
                         format!("{} {}", categories, category),
@@ -118,7 +116,9 @@ pub fn term_query_one(term: &str, field: Field, index: &Index) -> Result<Documen
 }
 
 pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
-    let field = index.schema().get_field("uuid").unwrap();
+    let schema = index.schema();
+    let fg = FieldGetter::new(&schema);
+    let field = fg.get_field(PostField::Uuid);
     term_query_one(uuid, field, index)
 }
 

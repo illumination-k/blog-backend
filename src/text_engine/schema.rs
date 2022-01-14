@@ -3,7 +3,11 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use tantivy::schema::*;
 
+#[cfg(test)]
+use strum_macros::{EnumCount, EnumIter};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(test, derive(EnumIter, EnumCount))]
 pub enum PostField {
     Uuid,
     Slug,
@@ -116,22 +120,6 @@ impl<'a> FieldGetter<'a> {
             Err(anyhow!(format!("{} is not date field", field.as_str())))
         }
     }
-
-    #[allow(dead_code)]
-    pub fn get_text_fields(&self) -> Vec<Field> {
-        PostField::text_fields()
-            .into_iter()
-            .map(|pf| self.get_field(pf))
-            .collect()
-    }
-
-    #[allow(dead_code)]
-    pub fn get_date_fields(&self) -> Vec<Field> {
-        PostField::date_fields()
-            .into_iter()
-            .map(|pf| self.get_field(pf))
-            .collect()
-    }
 }
 
 pub struct SchemaConstructor {
@@ -225,4 +213,55 @@ pub fn build_schema() -> Schema {
     constructor.build_date_fields(&[PostField::CreatedAt, PostField::UpdatedAt]);
 
     constructor.schema_builder.build()
+}
+
+#[cfg(test)]
+mod test_textengine_schmea {
+    use strum::{EnumCount, IntoEnumIterator};
+    use super::*;
+
+    #[test]
+    fn test_get_field() {
+        let schema = build_schema();
+        let fg = FieldGetter::new(&schema);
+
+        for pf in PostField::iter() {
+            fg.get_field(pf);
+        }
+    }
+
+    #[test]
+    fn test_postfields_beloging_some_fields_getter() {
+        assert_eq!(
+            PostField::COUNT,
+            PostField::text_fields().len()
+                + PostField::date_fields().len()
+                + PostField::not_stored_fileds().len()
+        )
+    }
+
+    #[test]
+    fn test_get_text_and_date() {
+        let schema = build_schema();
+        let fg = FieldGetter::new(&schema);
+
+        let mut doc = Document::new();
+        let datetime = Utc::now();
+
+        fg.get_fields(&PostField::text_fields())
+            .iter()
+            .for_each(|&x| doc.add_text(x, ""));
+
+        fg.get_fields(&PostField::date_fields())
+            .iter()
+            .for_each(|&x| doc.add_date(x, &datetime));
+
+        PostField::text_fields().iter().for_each(|&x| assert!(
+            fg.get_text(&doc, x).is_ok()
+        ));
+
+        PostField::date_fields().iter().for_each(|&x| assert!(
+            fg.get_date(&doc, x).is_ok()
+        ));
+    }
 }
