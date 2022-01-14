@@ -63,10 +63,12 @@ mod test_index {
         let temp_dir = TempDir::new("test_read_or_buld_index_with_schema").unwrap();
 
         let schema = build_schema();
+        let build_no_dir =
+            read_or_build_index(schema.clone(), &temp_dir.path().join("no_index_dir"), false);
         let build = read_or_build_index(schema.clone(), temp_dir.path(), false);
         let read = read_or_build_index(schema.clone(), temp_dir.path(), false);
         let rebuild = read_or_build_index(schema, temp_dir.path(), true);
-
+        assert!(build_no_dir.is_ok());
         assert!(build.is_ok());
         assert!(read.is_ok());
         assert!(rebuild.is_ok());

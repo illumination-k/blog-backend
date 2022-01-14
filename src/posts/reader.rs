@@ -8,10 +8,15 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
     let posts = glob(glob_pattern)?
         .into_iter()
         .filter_map(|path| path.ok())
-        .map(|path| {
+        .filter_map(|path| {
             // should be /path/to/filename.md
             let post = Post::from_path(&path);
-            (path, post)
+            if let Ok(post) = post {
+                Some((path, post))
+            } else {
+                error!("Error in {:?}. Maybe this file has invalid frontmatter. Skipping this file.", path);
+                None
+            }
         })
         .collect_vec();
 
@@ -20,10 +25,10 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
-    use std::io::Write;
     use super::*;
     use crate::markdown::template::template;
+    use std::fs;
+    use std::io::Write;
     #[test]
     fn test_get_all_posts() {
         let temp_dir = tempdir::TempDir::new("test_get_all_posts").unwrap();
@@ -51,8 +56,9 @@ mod test {
             .flatten()
             .filter(|x| x.ends_with(".md"))
             .count();
-        let actual_files_count =
-            get_all_posts(&format!("{}/**/*.md", temp_dir.path().display())).unwrap().len();
+        let actual_files_count = get_all_posts(&format!("{}/**/*.md", temp_dir.path().display()))
+            .unwrap()
+            .len();
 
         assert_eq!(expect_files_count, actual_files_count);
     }

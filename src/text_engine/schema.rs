@@ -218,7 +218,6 @@ pub fn build_schema() -> Schema {
 #[cfg(test)]
 mod test_textengine_schmea {
     use strum::{EnumCount, IntoEnumIterator};
-
     use super::*;
 
     #[test]
@@ -239,5 +238,30 @@ mod test_textengine_schmea {
                 + PostField::date_fields().len()
                 + PostField::not_stored_fileds().len()
         )
+    }
+
+    #[test]
+    fn test_get_text_and_date() {
+        let schema = build_schema();
+        let fg = FieldGetter::new(&schema);
+
+        let mut doc = Document::new();
+        let datetime = Utc::now();
+
+        fg.get_fields(&PostField::text_fields())
+            .iter()
+            .for_each(|&x| doc.add_text(x, ""));
+
+        fg.get_fields(&PostField::date_fields())
+            .iter()
+            .for_each(|&x| doc.add_date(x, &datetime));
+
+        PostField::text_fields().iter().for_each(|&x| assert!(
+            fg.get_text(&doc, x).is_ok()
+        ));
+
+        PostField::date_fields().iter().for_each(|&x| assert!(
+            fg.get_date(&doc, x).is_ok()
+        ));
     }
 }

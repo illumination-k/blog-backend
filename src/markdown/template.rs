@@ -39,9 +39,9 @@ pub fn template(with_date: &bool, datetime_format: &Option<String>) -> Result<St
 
 #[cfg(test)]
 mod test_template {
+    use super::template;
     use std::io::Write;
     use tempdir::TempDir;
-    use super::template;
 
     #[test]
     fn test_parse_basic_template() {
@@ -56,7 +56,7 @@ mod test_template {
         let mut f = fs::File::create(&temp_file).unwrap();
         write!(f, "{}", template).unwrap();
 
-        let _ = Post::from_path(&temp_file);
+        assert!(Post::from_path(&temp_file).is_ok());
     }
 
     #[test]
@@ -72,6 +72,6 @@ mod test_template {
         let mut f = fs::File::create(&temp_file).unwrap();
         write!(f, "{}", template).unwrap();
 
-        let _ = Post::from_path(&temp_file);
+        assert!(Post::from_path(&temp_file).is_ok());
     }
 }
