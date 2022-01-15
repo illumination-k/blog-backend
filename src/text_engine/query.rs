@@ -1,10 +1,11 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use itertools::Itertools;
 use serde::Deserialize;
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{AllQuery, Query, QueryParser, TermQuery},
+    query::{AllQuery, Query, QueryParser, TermQuery, BooleanQuery, Occur},
     schema::Field,
     DocAddress, Document, Index, IndexWriter, Term,
 };
@@ -67,31 +68,17 @@ pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String
     let _docs = get_all(&q, index, None)?;
 
     if let Some(docs) = _docs {
-        let (categories_string, tags_string) =
-            docs.iter()
-                .fold((String::new(), String::new()), |(categories, tags), doc| {
-                    let category = fg.get_text(doc, PostField::Category).expect("err in 75");
-                    let inner_tags = fg.get_text(doc, PostField::Tags).expect("err in 76");
+        let mut categories = HashSet::new();
+        let mut tags = HashSet::new();
 
-                    (
-                        format!("{} {}", categories, category),
-                        format!("{} {}", tags, inner_tags),
-                    )
-                });
-        return Ok((
-            categories_string
-                .trim()
-                .split(' ')
-                .map(|x| x.to_string())
-                .unique()
-                .collect_vec(),
-            tags_string
-                .trim()
-                .split(' ')
-                .map(|x| x.to_string())
-                .unique()
-                .collect_vec(),
-        ));
+        for doc in docs.iter() {
+            let category = fg.get_text(doc, PostField::Category)?;
+            let inner_tags = fg.get_tags(doc)?;
+            categories.insert(category);
+            tags.extend(inner_tags.into_iter())
+        }
+
+        return Ok((categories.into_iter().collect(), tags.into_iter().collect()));
     }
 
     Ok((Vec::new(), Vec::new()))
@@ -122,6 +109,28 @@ pub fn get_by_uuid(uuid: &str, index: &Index) -> Result<Document> {
     term_query_one(uuid, field, index)
 }
 
+pub fn get_by_slug_with_lang(slug: &str, lang: &str, index: &Index) -> Result<Document> {
+    let reader = index.reader()?;
+    let searcher = reader.searcher();
+    let schema = index.schema();
+    let fg = FieldGetter::new(&schema);
+    let slug_field = fg.get_field(PostField::Slug);
+    let lang_field = fg.get_field(PostField::Lang);
+
+    let slug_query: Box<dyn Query> = Box::new(TermQuery::new(Term::from_field_text(slug_field, slug) ,tantivy::schema::IndexRecordOption::Basic));
+    let lang_query: Box<dyn Query> = Box::new(TermQuery::new(Term::from_field_text(lang_field, lang) ,tantivy::schema::IndexRecordOption::Basic));
+
+    let q = BooleanQuery::new(vec![(Occur::Must, slug_query), (Occur::Must, lang_query)]);
+
+    let docs = searcher.search(&q, &TopDocs::with_limit(1))?;
+    if docs.is_empty() {
+        return Err(anyhow!("slug: {} and lang: {} is Not Found", slug, lang));
+    }
+    
+    let (_, doc_address) = docs.into_iter().next().unwrap();
+    Ok(searcher.doc(doc_address)?)
+}
+
 pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
     let now = Utc::now();
     let now_with_format = DateTimeWithFormat::new(now, DateTimeFormat::RFC3339);
@@ -130,7 +139,6 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
     let new_doc = match get_by_uuid(&post.uuid(), index) {
         Ok(doc) => {
             let uuid_field = fb.get_field(PostField::Uuid);
-            // dbg!(&post, &Post::from_doc(&doc, &index.schema()));
             // if no update in post, skip update index
             if post.equal_from_doc(&Post::from_doc(&doc, &schema)?) {
                 info!("skip post: {}", post.title());

@@ -20,6 +20,12 @@ pub async fn main(
     static_dir: PathBuf,
     _cors_origin: Option<String>,
 ) -> Result<()> {
+    eprintln!(
+        "Index Dir: {}, Static Dir: {}",
+        index_dir.display(),
+        static_dir.display()
+    );
+    eprintln!("start running on {}:{}", host, port);
     let schema = build_schema();
     let index = read_or_build_index(schema, &index_dir, false)?;
     let (categories, tags) = get_tags_and_categories(&index)?;
@@ -33,6 +39,7 @@ pub async fn main(
                 .wrap(Cors::default().allowed_origin(cors_origin))
                 .service(route::posts::get_post_by_id)
                 .service(route::posts::get_posts)
+                .service(route::posts::get_post_by_slug)
                 .service(route::search::search_posts)
                 .service(route::hello)
                 .service(route::tag_list)
@@ -47,6 +54,7 @@ pub async fn main(
                 .wrap(Cors::default())
                 .service(route::posts::get_post_by_id)
                 .service(route::posts::get_posts)
+                .service(route::posts::get_post_by_slug)
                 .service(route::search::search_posts)
                 .service(route::hello)
                 .service(route::tag_list)

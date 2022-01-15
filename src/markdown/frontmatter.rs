@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
@@ -6,7 +6,10 @@ use yaml_rust::{Yaml, YamlLoader};
 
 use crate::{
     posts::Lang,
-    text_engine::datetime::{parse_datetime, DateTimeFormat},
+    text_engine::{
+        datetime::{parse_datetime, DateTimeFormat},
+        schema::PostField,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -53,16 +56,22 @@ pub struct FrontMatter {
 
 impl FrontMatter {
     #[allow(clippy::too_many_arguments)]
-    pub fn new<S: ToString>(
-        uuid: S,
-        title: S,
-        description: S,
-        category: S,
+    pub fn new<S1, S2, S3, S4>(
+        uuid: S1,
+        title: S2,
+        description: S3,
+        category: S4,
         lang: Lang,
         tags: Option<Vec<String>>,
         created_at: Option<DateTimeWithFormat>,
         updated_at: Option<DateTimeWithFormat>,
-    ) -> Self {
+    ) -> Self
+    where
+        S1: ToString,
+        S2: ToString,
+        S3: ToString,
+        S4: ToString,
+    {
         Self {
             uuid: uuid.to_string(),
             title: title.to_string(),
@@ -138,22 +147,22 @@ impl FrontMatter {
 
         // To preserve order, we should use linked-hash-map
         let map: LinkedHashMap<&str, String> = [
-            ("uuid", self.uuid()),
-            ("title", self.title()),
-            ("description", self.description()),
-            ("lang", self.lang.as_str().to_string()),
-            ("category", self.category()),
+            (PostField::Uuid.as_str(), self.uuid()),
+            (PostField::Title.as_str(), self.title()),
+            (PostField::Description.as_str(), self.description()),
+            (PostField::Lang.as_str(), self.lang.as_str().to_string()),
+            (PostField::Category.as_str(), self.category()),
         ]
         .into_iter()
         .collect();
 
         let opmap: LinkedHashMap<&str, Option<String>> = [
             (
-                "created_at",
+                PostField::CreatedAt.as_str(),
                 self.created_at.to_owned().map(|c| c.to_string()),
             ),
             (
-                "updated_at",
+                PostField::UpdatedAt.as_str(),
                 self.updated_at.to_owned().map(|u| u.to_string()),
             ),
         ]
@@ -169,7 +178,10 @@ impl FrontMatter {
 
         if let Some(tags) = self.tags() {
             let tags = tags.into_iter().map(Yaml::String).collect_vec();
-            lm.insert(Yaml::String("tags".to_string()), Yaml::Array(tags));
+            lm.insert(
+                Yaml::String(PostField::Tags.as_str().to_string()),
+                Yaml::Array(tags),
+            );
         }
 
         for (k, v) in opmap.into_iter() {
@@ -197,16 +209,25 @@ pub fn find_frontmatter_block(text: &str) -> Option<(usize, usize)> {
     }
 }
 
+fn get_str_from_yaml(doc: &Yaml, field: PostField) -> Result<String> {
+    let field_str = field.as_str();
+    match &doc[field_str] {
+        Yaml::String(s) => Ok(s.to_owned()),
+        Yaml::Integer(i) => Ok(i.to_string()),
+        _ => Err(anyhow!(format!(
+            "{} field is need in frontmatter",
+            field_str
+        ))),
+    }
+}
+
 pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let docs = YamlLoader::load_from_str(frontmatter)?;
     let doc = &docs[0];
-    let uuid = doc["uuid"].as_str().expect("Need Id").to_string();
-    let title = doc["title"].as_str().expect("Need Title").to_string();
-    let category = doc["category"].as_str().expect("Need Category").to_string();
-    let description = doc["description"]
-        .as_str()
-        .expect("Need Description")
-        .to_string();
+    let uuid = get_str_from_yaml(doc, PostField::Uuid)?;
+    let title = get_str_from_yaml(doc, PostField::Title)?;
+    let category = get_str_from_yaml(doc, PostField::Category)?;
+    let description = get_str_from_yaml(doc, PostField::Description)?;
 
     let tags = doc["tags"].as_vec().map(|t| {
         t.iter()

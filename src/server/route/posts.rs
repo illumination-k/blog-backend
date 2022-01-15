@@ -9,20 +9,57 @@ use tantivy::{
 };
 
 use crate::text_engine::{
-    query::{get_all, get_by_uuid},
+    query::{get_all, get_by_uuid, get_by_slug_with_lang},
     schema::{FieldGetter, PostField},
 };
 
 use crate::text_engine::query::OrderBy;
 
-#[get("/posts/{uuid}")]
+#[get("/post/uuid/{uuid}")]
 async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> HttpResponse {
     let schema = index.schema();
+    let fg = FieldGetter::new(&schema);
     match get_by_uuid(&uuid.to_owned(), index.into_inner().deref()) {
-        Ok(doc) => HttpResponse::Ok().json(schema.to_named_doc(&doc)),
+        Ok(doc) => HttpResponse::Ok().json(fg.to_json(&doc).unwrap()),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct GetSlugParams {
+    slug: String,
+    lang: String,
+}
+
+#[get("/post/slug")]
+async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
+    let index = index.into_inner();
+    let schema = index.schema();
+    let fb = FieldGetter::new(&schema);
+    let params = match web::Query::<GetSlugParams>::from_query(req.query_string()) {
+        Ok(p) => p,
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    };
+
+    let doc = match get_by_slug_with_lang(&params.slug, &params.lang, &index) {
+        Ok(_doc) => {
+            match fb.to_json(&_doc) {
+                Ok(doc) => doc,
+                Err(e) => {
+                    error!("{:?}", e);
+                    return HttpResponse::InternalServerError().body("Internal Server Error");
+                }
+            }
+        },
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().body("Internal Server Error");
+        }
+    };
+
+    HttpResponse::Ok().json(doc)
+}
+
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum Order {
@@ -89,6 +126,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         get_all(&q, index.deref(), params.order_by())
     };
 
+
     let _docs = match __docs {
         Ok(_docs) => _docs,
         Err(e) => {
@@ -99,12 +137,12 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
 
     let mut docs = if let Some(docs) = _docs {
         docs.iter()
-            .map(|doc| index.schema().to_named_doc(doc))
+            .flat_map(|doc| {let jd = fb.to_json(doc); eprintln!("{:?}", jd);jd.ok()})
             .collect_vec()
     } else {
         Vec::new()
     };
-
+    eprintln!("{:?}", docs);
     match params.get_order() {
         Order::Asc => docs.reverse(),
         Order::Desc => {}

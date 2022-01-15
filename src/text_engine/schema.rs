@@ -1,10 +1,14 @@
 use crate::posts::Lang;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
+use itertools::Itertools;
+use serde::Serialize;
 use tantivy::schema::*;
 
 #[cfg(test)]
 use strum_macros::{EnumCount, EnumIter};
+
+use super::datetime::DateTimeFormat;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(test, derive(EnumIter, EnumCount))]
@@ -67,6 +71,87 @@ impl PostField {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct JSONDcument {
+    uuid: Option<String>,
+    slug: Option<String>,
+    title: Option<String>,
+    description: Option<String>,
+    category: Option<String>,
+    lang: Option<String>,
+    tags: Option<Vec<String>>,
+    body: Option<String>,
+    updated_at: Option<String>,
+    created_at: Option<String>,
+}
+
+impl JSONDcument {
+    pub fn new() -> Self {
+        Self {
+            uuid: None,
+            slug: None,
+            title: None,
+            description: None,
+            category: None,
+            lang: None,
+            tags: None,
+            body: None,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+
+    pub fn set(&mut self, doc: &Document, field: PostField, fb: &FieldGetter) -> Result<()> {
+        match field {
+            PostField::Uuid => {
+                let uuid = fb.get_text(doc, field)?;
+                self.uuid = Some(uuid)
+            }
+            PostField::Tags => {
+                let tags = fb.get_tags(doc)?;
+                self.tags = Some(tags)
+            }
+            PostField::Body => {
+                let body = fb.get_text(doc, field)?;
+                self.body = Some(body);
+            }
+            PostField::Category => {
+                let category = fb.get_text(doc, field)?;
+                self.category = Some(category);
+            }
+            PostField::Description => {
+                let desc = fb.get_text(doc, field)?;
+                self.description = Some(desc);
+            }
+            PostField::Lang => {
+                let lang = fb.get_text(doc, field)?;
+                self.lang = Some(lang);
+            }
+            PostField::Title => {
+                let title = fb.get_text(doc, field)?;
+                self.title = Some(title)
+            }
+            PostField::Slug => {
+                let slug = fb.get_text(doc, field)?;
+                self.slug = Some(slug);
+            }
+            PostField::CreatedAt => {
+                let created_at = fb.get_date_as_str(doc, field)?;
+                self.created_at = Some(created_at);
+            }
+            PostField::UpdatedAt => {
+                let updated_at = fb.get_date_as_str(doc, field)?;
+                self.updated_at = Some(updated_at);
+            }
+            _ => {
+                return Ok(());
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub struct FieldGetter<'a> {
     schema: &'a Schema,
 }
@@ -84,7 +169,7 @@ impl<'a> FieldGetter<'a> {
             .unwrap_or_else(|| panic!("Error in PostField: {}", field_name))
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn get_fields(&self, fields: &[PostField]) -> Vec<Field> {
         fields.iter().map(|&pf| self.get_field(pf)).collect()
     }
@@ -119,6 +204,66 @@ impl<'a> FieldGetter<'a> {
         } else {
             Err(anyhow!(format!("{} is not date field", field.as_str())))
         }
+    }
+
+    pub fn get_date_as_str(&self, doc: &Document, field: PostField) -> Result<String> {
+        match field {
+            PostField::CreatedAt => {
+                let datetime = self.get_date(doc, field)?;
+                let datetime_format = self.get_text(doc, PostField::CreatedAtFormat)?;
+
+                let dfmt = DateTimeFormat::from(datetime_format.as_str());
+                Ok(dfmt.format(datetime))
+            }
+            PostField::UpdatedAt => {
+                let datetime = self.get_date(doc, field)?;
+                let datetime_format = self.get_text(doc, PostField::UpdatedAtFormat)?;
+
+                let dfmt = DateTimeFormat::from(datetime_format.as_str());
+                Ok(dfmt.format(datetime))
+            }
+            _ => Err(anyhow!("{} is not date field", field.as_str())),
+        }
+    }
+
+    pub fn get_tags(&self, doc: &Document) -> Result<Vec<String>> {
+        let tag_str = self.get_text(doc, PostField::Tags)?;
+        Ok(tag_str
+            .split(' ')
+            .into_iter()
+            .map(|s| s.to_string())
+            .filter(|s| !s.is_empty())
+            .collect_vec())
+    }
+
+    pub fn to_json(&self, doc: &Document) -> Result<JSONDcument> {
+        let mut jd = JSONDcument::new();
+
+        for field in PostField::text_fields().into_iter() {
+            jd.set(doc, field, self)?;
+        }
+
+        for field in PostField::date_fields().into_iter() {
+            jd.set(doc, field, self)?;
+        }
+
+        Ok(jd)
+    }
+
+    #[allow(dead_code)]
+    pub fn get_text_fields(&self) -> Vec<Field> {
+        PostField::text_fields()
+            .into_iter()
+            .map(|pf| self.get_field(pf))
+            .collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn get_date_fields(&self) -> Vec<Field> {
+        PostField::date_fields()
+            .into_iter()
+            .map(|pf| self.get_field(pf))
+            .collect()
     }
 }
 
@@ -217,8 +362,8 @@ pub fn build_schema() -> Schema {
 
 #[cfg(test)]
 mod test_textengine_schmea {
-    use strum::{EnumCount, IntoEnumIterator};
     use super::*;
+    use strum::{EnumCount, IntoEnumIterator};
 
     #[test]
     fn test_get_field() {
@@ -256,12 +401,12 @@ mod test_textengine_schmea {
             .iter()
             .for_each(|&x| doc.add_date(x, &datetime));
 
-        PostField::text_fields().iter().for_each(|&x| assert!(
-            fg.get_text(&doc, x).is_ok()
-        ));
+        PostField::text_fields()
+            .iter()
+            .for_each(|&x| assert!(fg.get_text(&doc, x).is_ok()));
 
-        PostField::date_fields().iter().for_each(|&x| assert!(
-            fg.get_date(&doc, x).is_ok()
-        ));
+        PostField::date_fields()
+            .iter()
+            .for_each(|&x| assert!(fg.get_date(&doc, x).is_ok()));
     }
 }
