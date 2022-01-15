@@ -9,7 +9,7 @@ use tantivy::{
 };
 
 use crate::text_engine::{
-    query::{get_all, get_by_uuid, get_by_slug_with_lang},
+    query::{get_all, get_by_slug_with_lang, get_by_uuid},
     schema::{FieldGetter, PostField},
 };
 
@@ -42,13 +42,11 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
     };
 
     let doc = match get_by_slug_with_lang(&params.slug, &params.lang, &index) {
-        Ok(_doc) => {
-            match fb.to_json(&_doc) {
-                Ok(doc) => doc,
-                Err(e) => {
-                    error!("{:?}", e);
-                    return HttpResponse::InternalServerError().body("Internal Server Error");
-                }
+        Ok(_doc) => match fb.to_json(&_doc) {
+            Ok(doc) => doc,
+            Err(e) => {
+                error!("{:?}", e);
+                return HttpResponse::InternalServerError().body("Internal Server Error");
             }
         },
         Err(e) => {
@@ -59,7 +57,6 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
 
     HttpResponse::Ok().json(doc)
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum Order {
@@ -126,7 +123,6 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
         get_all(&q, index.deref(), params.order_by())
     };
 
-
     let _docs = match __docs {
         Ok(_docs) => _docs,
         Err(e) => {
@@ -137,7 +133,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
 
     let mut docs = if let Some(docs) = _docs {
         docs.iter()
-            .flat_map(|doc| {let jd = fb.to_json(doc); eprintln!("{:?}", jd);jd.ok()})
+            .flat_map(|doc| fb.to_json(doc).ok())
             .collect_vec()
     } else {
         Vec::new()

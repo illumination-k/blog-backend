@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{AllQuery, Query, QueryParser, TermQuery, BooleanQuery, Occur},
+    query::{AllQuery, BooleanQuery, Occur, Query, QueryParser, TermQuery},
     schema::Field,
     DocAddress, Document, Index, IndexWriter, Term,
 };
@@ -117,8 +117,14 @@ pub fn get_by_slug_with_lang(slug: &str, lang: &str, index: &Index) -> Result<Do
     let slug_field = fg.get_field(PostField::Slug);
     let lang_field = fg.get_field(PostField::Lang);
 
-    let slug_query: Box<dyn Query> = Box::new(TermQuery::new(Term::from_field_text(slug_field, slug) ,tantivy::schema::IndexRecordOption::Basic));
-    let lang_query: Box<dyn Query> = Box::new(TermQuery::new(Term::from_field_text(lang_field, lang) ,tantivy::schema::IndexRecordOption::Basic));
+    let slug_query: Box<dyn Query> = Box::new(TermQuery::new(
+        Term::from_field_text(slug_field, slug),
+        tantivy::schema::IndexRecordOption::Basic,
+    ));
+    let lang_query: Box<dyn Query> = Box::new(TermQuery::new(
+        Term::from_field_text(lang_field, lang),
+        tantivy::schema::IndexRecordOption::Basic,
+    ));
 
     let q = BooleanQuery::new(vec![(Occur::Must, slug_query), (Occur::Must, lang_query)]);
 
@@ -126,7 +132,7 @@ pub fn get_by_slug_with_lang(slug: &str, lang: &str, index: &Index) -> Result<Do
     if docs.is_empty() {
         return Err(anyhow!("slug: {} and lang: {} is Not Found", slug, lang));
     }
-    
+
     let (_, doc_address) = docs.into_iter().next().unwrap();
     Ok(searcher.doc(doc_address)?)
 }
