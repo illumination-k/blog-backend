@@ -14,7 +14,10 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
             if let Ok(post) = post {
                 Some((path, post))
             } else {
-                error!("Error in {:?}. Maybe this file has invalid frontmatter. Skipping this file.", path);
+                error!(
+                    "Error in {:?}. Maybe this file has invalid frontmatter. Skipping this file.",
+                    path
+                );
                 None
             }
         })

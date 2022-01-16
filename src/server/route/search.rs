@@ -45,7 +45,7 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
             }
         }
         .iter()
-        .map(|doc| index.schema().to_named_doc(doc))
+        .flat_map(|doc| fb.to_json(doc))
         .collect_vec()
     } else {
         Vec::new()
