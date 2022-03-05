@@ -93,6 +93,31 @@ impl Post {
         self.raw_text.clone()
     }
 
+    #[allow(dead_code)]
+    pub fn diff(&self, other: &Self) {
+        if self.body != other.body {
+            eprintln!("body: self: {} other: {}", self.body, other.body);
+        }
+
+        if self.slug != other.slug {
+            eprintln!("slug: self: {} other: {}", self.slug, other.slug);
+        }
+
+        if self.raw_text != other.raw_text {
+            eprintln!(
+                "rawtext:\n\t self: \t{:?}\n \tother: \t{:?}\n",
+                self.raw_text, other.raw_text
+            );
+        }
+
+        if !self.matter.equal_matter_from_doc(&other.matter) {
+            eprintln!(
+                "matter:\n self: {:?}\n other: {:?}",
+                self.matter, other.matter
+            )
+        }
+    }
+
     /// **CAUSION!**  
     /// This function do not return strict equal.
     /// If updated_at and created_at in `self.matter` is `None`,
@@ -102,7 +127,6 @@ impl Post {
     pub fn equal_from_doc(&self, other: &Self) -> bool {
         self.body == other.body
             && self.slug == other.slug
-            && self.raw_text == other.raw_text
             && self.matter.equal_matter_from_doc(&other.matter)
     }
 
