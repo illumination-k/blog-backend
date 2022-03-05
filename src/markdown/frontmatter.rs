@@ -133,9 +133,7 @@ impl FrontMatter {
             flag = flag && self.created_at == other.created_at
         }
 
-        if self.updated_at.is_some() {
-            flag = flag && self.updated_at == other.updated_at
-        }
+        // do not compare updated at!
 
         flag
     }
