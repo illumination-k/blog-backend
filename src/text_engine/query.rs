@@ -146,6 +146,7 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
         Ok(doc) => {
             let uuid_field = fb.get_field(PostField::Uuid);
             // if no update in post, skip update index
+            post.diff(&Post::from_doc(&doc, &schema)?);
             if post.equal_from_doc(&Post::from_doc(&doc, &schema)?) {
                 info!("skip post: {}", post.title());
                 return Ok(None);

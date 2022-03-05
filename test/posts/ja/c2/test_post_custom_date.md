@@ -5,6 +5,6 @@ description: custom date
 lang: ja
 category: c2
 created_at: 2022/01/01
-updated_at: 2023/01/01
+updated_at: "2022-03-05T11:00:50+00:00"
 ---
 
