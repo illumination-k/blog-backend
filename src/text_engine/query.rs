@@ -146,7 +146,7 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
         Ok(doc) => {
             let uuid_field = fb.get_field(PostField::Uuid);
             // if no update in post, skip update index
-            post.diff(&Post::from_doc(&doc, &schema)?);
+            // post.diff(&Post::from_doc(&doc, &schema)?);
             if post.equal_from_doc(&Post::from_doc(&doc, &schema)?) {
                 info!("skip post: {}", post.title());
                 return Ok(None);
@@ -207,4 +207,30 @@ pub fn search(
         .into_iter()
         .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
         .collect())
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use super::put;
+    use crate::{
+        posts::Post,
+        text_engine::{index::read_or_build_index, schema::build_schema},
+    };
+    use tempdir::TempDir;
+
+    #[test]
+    fn test_put() {
+        let temp_dir = TempDir::new("test_put_query").unwrap();
+
+        let schema = build_schema();
+        let index =
+            read_or_build_index(schema.clone(), &temp_dir.path().join("put"), false).unwrap();
+        let mut index_writer = index.writer(100_000_000).unwrap();
+        let post = Post::from_path(Path::new("./test/posts/ja/c1/test_post.md")).unwrap();
+        let doc = put(&post, &index, &mut index_writer).unwrap().unwrap();
+        let post_doc = Post::from_doc(&doc, &schema).unwrap();
+        assert!(post.equal_from_doc(&post_doc));
+    }
 }
