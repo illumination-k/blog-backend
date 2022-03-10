@@ -1,0 +1,164 @@
+{
+  "index_settings": {
+    "docstore_compression": "lz4"
+  },
+  "segments": [
+    {
+      "segment_id": "09906652-8aee-455f-bc08-19f936b77ca3",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "1fee9bea-6f22-4613-98ce-38b1add9be2e",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "73a1c489-7112-4c6f-81ff-5ba63b933fda",
+      "max_doc": 1,
+      "deletes": null
+    }
+  ],
+  "schema": [
+    {
+      "name": "body",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "tags",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "created_at_format",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "updated_at_format",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "uuid",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "slug",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "lang",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "raw_tokenizer"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "raw_text",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "lang_ja"
+        },
+        "stored": false
+      }
+    },
+    {
+      "name": "created_at",
+      "type": "date",
+      "options": {
+        "indexed": false,
+        "fast": "single",
+        "stored": true
+      }
+    },
+    {
+      "name": "updated_at",
+      "type": "date",
+      "options": {
+        "indexed": false,
+        "fast": "single",
+        "stored": true
+      }
+    }
+  ],
+  "opstamp": 10
+}

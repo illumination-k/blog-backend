@@ -402,8 +402,9 @@ tags:
                     let mut updated_frontmatter_with_date = frontmatter_with_date.clone();
                     updated_frontmatter_with_date.updated_at =
                         Some(DateTimeWithFormat::new(Utc::now(), DateTimeFormat::RFC3339));
-                    assert!(!frontmatter_with_date
-                        .equal_matter_from_doc(&updated_frontmatter_with_date));
+                    assert!(
+                        frontmatter_with_date.equal_matter_from_doc(&updated_frontmatter_with_date)
+                    );
                 }
             }
         }

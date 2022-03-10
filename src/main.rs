@@ -8,6 +8,9 @@ mod posts;
 mod server;
 mod text_engine;
 
+#[cfg(test)]
+mod test_utility;
+
 use anyhow::{anyhow, Result};
 use markdown::dump::dump_doc;
 use std::env::set_var;
