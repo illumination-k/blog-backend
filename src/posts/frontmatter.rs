@@ -5,11 +5,10 @@ use uuid::Uuid;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::{
+    datetime::{parse_datetime, DateTimeWithFormat},
     posts::Lang,
     text_engine::schema::PostField,
-    datetime::{parse_datetime, DateTimeWithFormat},
 };
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FrontMatter {

@@ -96,7 +96,6 @@ pub fn parse_datetime(
     Err(anyhow!(format!("Cannot Parse {}", s)))
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct DateTimeWithFormat {
     datetime: DateTime<Utc>,
@@ -132,7 +131,6 @@ impl Default for DateTimeWithFormat {
         Self::now(&DateTimeFormat::RFC3339)
     }
 }
-
 
 #[cfg(test)]
 mod test_datetime {

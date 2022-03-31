@@ -10,11 +10,10 @@ use tantivy::{
     DocAddress, Document, Index, IndexWriter, Term,
 };
 
-use crate::posts::{Post};
+use crate::posts::Post;
 
-use crate::datetime::{self, DateTimeFormat, DateTimeWithFormat};
 use super::schema::{FieldGetter, PostField};
-
+use crate::datetime::{self, DateTimeFormat, DateTimeWithFormat};
 
 pub fn get_all(
     query: &dyn Query,

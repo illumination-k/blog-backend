@@ -1,8 +1,8 @@
+pub mod dump;
+pub mod extract_text;
+pub mod frontmatter;
 pub mod index;
 pub mod reader;
-pub mod dump;
-pub mod frontmatter;
-pub mod extract_text;
 pub mod template;
 
 use std::ffi::OsStr;
@@ -16,8 +16,8 @@ use tantivy::schema::*;
 use extract_text::extract_text;
 use frontmatter::{split_frontmatter_and_content, FrontMatter};
 
-use crate::io::read_string;
 use crate::datetime::{DateTimeFormat, DateTimeWithFormat};
+use crate::io::read_string;
 use crate::text_engine::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, PartialEq)]

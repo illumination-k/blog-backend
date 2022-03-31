@@ -2,12 +2,11 @@
 extern crate log;
 
 mod args;
+mod datetime;
 mod io;
 mod posts;
 mod server;
 mod text_engine;
-mod datetime;
-
 
 use anyhow::{anyhow, Result};
 use std::env::set_var;
@@ -17,9 +16,9 @@ use tantivy::collector::{Count, TopDocs};
 use tantivy::query::AllQuery;
 use tantivy::Index;
 
+use datetime::DateTimeWithFormat;
 use posts::dump::{dump_doc, dump_post};
 use posts::frontmatter::{parse_date_with_format, replace_frontmatter};
-use datetime::DateTimeWithFormat;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::io::{read_string, write_string};
