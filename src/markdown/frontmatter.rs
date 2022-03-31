@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
+use uuid::Uuid;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::{
@@ -39,6 +40,12 @@ impl DateTimeWithFormat {
 impl ToString for DateTimeWithFormat {
     fn to_string(&self) -> String {
         self.format.format(self.datetime)
+    }
+}
+
+impl Default for DateTimeWithFormat {
+    fn default() -> Self {
+        Self::now(&DateTimeFormat::RFC3339)
     }
 }
 
@@ -219,6 +226,96 @@ fn get_str_from_yaml(doc: &Yaml, field: PostField) -> Result<String> {
     }
 }
 
+pub fn parse_date_with_format(date_string: &str) -> DateTimeWithFormat {
+    match parse_datetime(date_string, None) {
+        Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
+        Err(e) => panic!("{}", e),
+    }
+}
+
+pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Option<DateTimeWithFormat> {
+    doc[key].as_str().map(|s| match parse_datetime(s, None) {
+        Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
+        Err(e) => panic!("{}", e),
+    })
+}
+
+pub fn get_or_fill_str_from_yaml<S: ToString>(
+    doc: &Yaml,
+    field: PostField,
+    val: &Option<String>,
+    fill_val: S,
+) -> String {
+    if let Some(val) = val {
+        val.to_owned()
+    } else if let Ok(val) = get_str_from_yaml(doc, field) {
+        val
+    } else {
+        fill_val.to_string()
+    }
+}
+
+pub fn replace_frontmatter(
+    frontmatter: &str,
+    uuid: &Option<String>,
+    title: &Option<String>,
+    category: &Option<String>,
+    lang: &Option<String>,
+    description: &Option<String>,
+    tags: &Option<Vec<String>>,
+    created_at: &Option<DateTimeWithFormat>,
+    updated_at: &Option<DateTimeWithFormat>,
+) -> Result<FrontMatter> {
+    let docs = if frontmatter.is_empty() {
+        YamlLoader::load_from_str("empty: f")?
+    } else {
+        YamlLoader::load_from_str(frontmatter)?
+    };
+    let doc = &docs[0];
+    let uuid = get_or_fill_str_from_yaml(doc, PostField::Uuid, uuid, Uuid::new_v4());
+    let title = get_or_fill_str_from_yaml(doc, PostField::Title, title, "");
+    let category = get_or_fill_str_from_yaml(doc, PostField::Category, category, "");
+    let description = get_or_fill_str_from_yaml(doc, PostField::Description, description, "");
+    let lang = Lang::from_str(&get_or_fill_str_from_yaml(doc, PostField::Lang, lang, "ja"))?;
+
+    let tags = if let Some(tags) = tags {
+        Some(tags.to_owned())
+    } else {
+        doc["tags"].as_vec().map(|t| {
+            t.iter()
+                .map(|ss| match ss {
+                    Yaml::Integer(i) => i.to_string(),
+                    Yaml::String(s) => s.to_owned(),
+                    _ => panic!("Unsupported tag type. Tags must be intger or string"),
+                })
+                .collect_vec()
+        })
+    };
+
+    let created_at = if let Some(created_at) = created_at {
+        Some(created_at.to_owned())
+    } else {
+        parse_date_from_yaml(doc, "created_at")
+    };
+
+    let updated_at = if let Some(updated_at) = updated_at {
+        Some(updated_at.to_owned())
+    } else {
+        parse_date_from_yaml(doc, "updated_at")
+    };
+
+    Ok(FrontMatter::new(
+        uuid,
+        title,
+        description,
+        category,
+        lang,
+        tags,
+        created_at,
+        updated_at,
+    ))
+}
+
 pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let docs = YamlLoader::load_from_str(frontmatter)?;
     let doc = &docs[0];
@@ -243,19 +340,8 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
         _ => panic!("Unsupported lang type. Lang must be string"),
     };
 
-    let created_at = doc["created_at"]
-        .as_str()
-        .map(|s| match parse_datetime(s, None) {
-            Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
-            Err(e) => panic!("{}", e),
-        });
-
-    let updated_at = doc["updated_at"]
-        .as_str()
-        .map(|s| match parse_datetime(s, None) {
-            Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
-            Err(e) => panic!("{}", e),
-        });
+    let created_at = parse_date_from_yaml(doc, "created_at");
+    let updated_at = parse_date_from_yaml(doc, "updated_at");
 
     Ok(FrontMatter::new(
         uuid,

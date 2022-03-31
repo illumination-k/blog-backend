@@ -46,6 +46,16 @@ impl Lang {
     }
 }
 
+pub fn path_to_slug(path: &Path) -> String {
+    path.file_name()
+        .map(rsplit_file_at_dot)
+        .and_then(|(before, after)| before.or(after))
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Post {
     slug: String,
@@ -130,15 +140,18 @@ impl Post {
             && self.matter.equal_matter_from_doc(&other.matter)
     }
 
+    pub fn new(slug: String, matter: FrontMatter, body: String) -> Self {
+        let raw_text = extract_text(&body);
+        Self {
+            slug,
+            matter,
+            body,
+            raw_text: Some(raw_text),
+        }
+    }
+
     pub fn from_path(path: &Path) -> Result<Self> {
-        let slug = path
-            .file_name()
-            .map(rsplit_file_at_dot)
-            .and_then(|(before, after)| before.or(after))
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let slug = path_to_slug(path);
 
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
