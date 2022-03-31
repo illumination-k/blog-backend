@@ -255,6 +255,7 @@ pub fn get_or_fill_str_from_yaml<S: ToString>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn replace_frontmatter(
     frontmatter: &str,
     uuid: &Option<String>,

@@ -3,16 +3,12 @@ extern crate log;
 
 mod args;
 mod io;
-mod markdown;
 mod posts;
 mod server;
 mod text_engine;
 
-#[cfg(test)]
-mod test_utility;
 
 use anyhow::{anyhow, Result};
-use markdown::dump::dump_doc;
 use std::env::set_var;
 use std::fs;
 use structopt::StructOpt;
@@ -20,11 +16,13 @@ use tantivy::collector::{Count, TopDocs};
 use tantivy::query::AllQuery;
 use tantivy::Index;
 
+use posts::dump::{dump_doc, dump_post};
+use posts::frontmatter::{DateTimeWithFormat, parse_date_with_format, replace_frontmatter};
+
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::io::{read_string, write_string};
-use crate::markdown::dump::dump_post;
-use crate::markdown::frontmatter::find_frontmatter_block;
-use crate::markdown::template::template;
+use crate::posts::frontmatter::find_frontmatter_block;
+use crate::posts::template::template;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
 fn main() -> Result<()> {
@@ -104,18 +102,18 @@ fn main() -> Result<()> {
             };
 
             let created_at = Some(if let Some(created_at) = created_at {
-                markdown::frontmatter::parse_date_with_format(created_at)
+                parse_date_with_format(created_at)
             } else {
-                markdown::frontmatter::DateTimeWithFormat::default()
+                DateTimeWithFormat::default()
             });
 
             let updated_at = Some(if let Some(updated_at) = updated_at {
-                markdown::frontmatter::parse_date_with_format(updated_at)
+                parse_date_with_format(updated_at)
             } else {
-                markdown::frontmatter::DateTimeWithFormat::default()
+                DateTimeWithFormat::default()
             });
 
-            let matter = markdown::frontmatter::replace_frontmatter(
+            let matter = replace_frontmatter(
                 matter,
                 uuid,
                 title,

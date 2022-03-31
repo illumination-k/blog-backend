@@ -10,7 +10,7 @@ use tantivy::{
     DocAddress, Document, Index, IndexWriter, Term,
 };
 
-use crate::{markdown::frontmatter::DateTimeWithFormat, posts::Post};
+use crate::posts::{Post, frontmatter::DateTimeWithFormat};
 
 use super::datetime::DateTimeFormat;
 use super::schema::{FieldGetter, PostField};

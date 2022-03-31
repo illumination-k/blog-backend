@@ -1,5 +1,9 @@
 pub mod index;
 pub mod reader;
+pub mod dump;
+pub mod frontmatter;
+pub mod extract_text;
+pub mod template;
 
 use std::ffi::OsStr;
 use std::path::Path;
@@ -9,11 +13,8 @@ use itertools::Itertools;
 
 use tantivy::schema::*;
 
-use crate::markdown::frontmatter::DateTimeWithFormat;
-use crate::markdown::{
-    extract_text::extract_text,
-    frontmatter::{split_frontmatter_and_content, FrontMatter},
-};
+use extract_text::extract_text;
+use frontmatter::{split_frontmatter_and_content, FrontMatter, DateTimeWithFormat};
 
 use crate::io::read_string;
 use crate::text_engine::datetime::DateTimeFormat;
