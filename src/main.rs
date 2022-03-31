@@ -23,7 +23,7 @@ use posts::frontmatter::{parse_date_with_format, replace_frontmatter};
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::io::{read_string, write_string};
 use crate::posts::frontmatter::find_frontmatter_block;
-use crate::posts::template::template;
+use crate::posts::template;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
 fn main() -> Result<()> {

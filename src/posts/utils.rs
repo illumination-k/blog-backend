@@ -29,7 +29,7 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::posts::template::template;
+    use crate::posts::template;
     use std::fs;
     use std::io::Write;
     #[test]
