@@ -26,6 +26,18 @@ mod test {
         let (_, markdown_text) = split_frontmatter_and_content(&markdown_text);
 
         let text = extract_text(&markdown_text);
-        dbg!(&text);
+        assert_eq!(
+            &text,
+            r#"TEST
+これはテストです。
+リスト1
+リスト2
+self
+fn main() {
+    println!("Hello World")
+}
+
+Some Codes"#
+        )
     }
 }

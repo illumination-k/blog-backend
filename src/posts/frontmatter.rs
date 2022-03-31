@@ -201,6 +201,18 @@ pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Option<DateTimeWithFormat>
     })
 }
 
+fn get_tags_from_yaml(doc: &Yaml) -> Option<Vec<String>> {
+    doc[PostField::Tags.as_str()].as_vec().map(|t| {
+        t.iter()
+            .map(|ss| match ss {
+                Yaml::Integer(i) => i.to_string(),
+                Yaml::String(s) => s.to_owned(),
+                _ => panic!("Unsupported tag type. Tags must be intger or string"),
+            })
+            .collect_vec()
+    })
+}
+
 pub fn get_or_fill_str_from_yaml<S: ToString>(
     doc: &Yaml,
     field: PostField,
@@ -243,15 +255,7 @@ pub fn replace_frontmatter(
     let tags = if let Some(tags) = tags {
         Some(tags.to_owned())
     } else {
-        doc["tags"].as_vec().map(|t| {
-            t.iter()
-                .map(|ss| match ss {
-                    Yaml::Integer(i) => i.to_string(),
-                    Yaml::String(s) => s.to_owned(),
-                    _ => panic!("Unsupported tag type. Tags must be intger or string"),
-                })
-                .collect_vec()
-        })
+        get_tags_from_yaml(doc)
     };
 
     let created_at = if let Some(created_at) = created_at {
@@ -286,15 +290,7 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let category = get_str_from_yaml(doc, PostField::Category)?;
     let description = get_str_from_yaml(doc, PostField::Description)?;
 
-    let tags = doc["tags"].as_vec().map(|t| {
-        t.iter()
-            .map(|ss| match ss {
-                Yaml::Integer(i) => i.to_string(),
-                Yaml::String(s) => s.to_owned(),
-                _ => panic!("Unsupported tag type. Tags must be intger or string"),
-            })
-            .collect_vec()
-    });
+    let tags = get_tags_from_yaml(doc);
 
     let lang = match &doc["lang"] {
         Yaml::BadValue => Lang::Ja,

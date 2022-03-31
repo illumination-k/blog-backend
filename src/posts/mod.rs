@@ -2,8 +2,8 @@ pub mod dump;
 pub mod extract_text;
 pub mod frontmatter;
 pub mod index;
-pub mod utils;
 pub mod template;
+pub mod utils;
 
 use std::ffi::OsStr;
 use std::path::Path;
@@ -253,6 +253,8 @@ impl Post {
         doc
     }
 }
+
+// This is nightly version of rust
 
 unsafe fn u8_slice_as_os_str(s: &[u8]) -> &OsStr {
     // SAFETY: see the comment of `os_str_as_u8_slice`
