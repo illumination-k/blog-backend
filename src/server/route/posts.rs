@@ -59,6 +59,7 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Order {
     Asc,
     Desc,

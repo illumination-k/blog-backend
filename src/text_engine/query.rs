@@ -16,6 +16,7 @@ use super::datetime::DateTimeFormat;
 use super::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OrderBy {
     CreatedAt,
     UpdatedAt,
