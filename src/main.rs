@@ -18,7 +18,8 @@ use tantivy::query::AllQuery;
 use tantivy::Index;
 
 use posts::dump::{dump_doc, dump_post};
-use posts::frontmatter::{DateTimeWithFormat, parse_date_with_format, replace_frontmatter};
+use posts::frontmatter::{parse_date_with_format, replace_frontmatter};
+use datetime::DateTimeWithFormat;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::io::{read_string, write_string};

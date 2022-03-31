@@ -14,10 +14,10 @@ use itertools::Itertools;
 use tantivy::schema::*;
 
 use extract_text::extract_text;
-use frontmatter::{split_frontmatter_and_content, FrontMatter, DateTimeWithFormat};
+use frontmatter::{split_frontmatter_and_content, FrontMatter};
 
 use crate::io::read_string;
-use crate::text_engine::datetime::DateTimeFormat;
+use crate::datetime::{DateTimeFormat, DateTimeWithFormat};
 use crate::text_engine::schema::{FieldGetter, PostField};
 
 #[derive(Debug, Clone, PartialEq)]

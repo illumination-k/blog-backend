@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+
 use tantivy::{
     collector::{Count, TopDocs},
     query::{AllQuery, BooleanQuery, Occur, Query, QueryParser, TermQuery},
@@ -10,22 +10,16 @@ use tantivy::{
     DocAddress, Document, Index, IndexWriter, Term,
 };
 
-use crate::posts::{Post, frontmatter::DateTimeWithFormat};
+use crate::posts::{Post};
 
-use super::datetime::DateTimeFormat;
+use crate::datetime::{self, DateTimeFormat, DateTimeWithFormat};
 use super::schema::{FieldGetter, PostField};
 
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OrderBy {
-    CreatedAt,
-    UpdatedAt,
-}
 
 pub fn get_all(
     query: &dyn Query,
     index: &Index,
-    order_by: Option<OrderBy>,
+    order_by: Option<datetime::OrderBy>,
 ) -> Result<Option<Vec<Document>>> {
     let schema = index.schema();
     let searcher = index.reader()?.searcher();
@@ -40,9 +34,9 @@ pub fn get_all(
     let docs = if let Some(order_by) = order_by {
         let collector =
             match order_by {
-                OrderBy::CreatedAt => TopDocs::with_limit(count)
+                datetime::OrderBy::CreatedAt => TopDocs::with_limit(count)
                     .order_by_fast_field(fb.get_field(PostField::CreatedAt)),
-                OrderBy::UpdatedAt => TopDocs::with_limit(count)
+                datetime::OrderBy::UpdatedAt => TopDocs::with_limit(count)
                     .order_by_fast_field(fb.get_field(PostField::UpdatedAt)),
             };
         searcher

@@ -2,10 +2,12 @@ use uuid::Uuid;
 
 use super::{
     dump::dump_matter,
-    frontmatter::{DateTimeWithFormat, FrontMatter},
+    frontmatter::{FrontMatter},
 };
-use crate::{posts::Lang, text_engine::datetime::DateTimeFormat};
+use crate::{posts::Lang};
 use anyhow::Result;
+
+use crate::datetime::{DateTimeFormat, DateTimeWithFormat};
 
 pub fn template(with_date: &bool, datetime_format: &Option<String>) -> Result<String> {
     let fmt = if let Some(s) = datetime_format {
