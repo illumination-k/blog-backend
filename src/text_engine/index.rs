@@ -55,7 +55,7 @@ pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> R
 #[cfg(test)]
 mod test_index {
     use super::read_or_build_index;
-    use crate::build_schema;
+    use crate::text_engine::schema::build_schema;
     use tempdir::TempDir;
 
     #[test]

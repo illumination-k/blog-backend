@@ -14,9 +14,7 @@ pub fn dump_matter(matter: &FrontMatter) -> Result<String> {
     Ok(out_str)
 }
 
-pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
-    let post = Post::from_doc(doc, schema)?;
-
+pub fn dump_post(post: &Post) -> Result<(String, String)> {
     let mut out_str = dump_matter(&post.matter())?;
     out_str.push_str(&post.body());
 
@@ -25,4 +23,10 @@ pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
     filename.push_str(&post.slug());
     filename.push_str(".md");
     Ok((filename, out_str))
+}
+
+pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
+    let post = Post::from_doc(doc, schema)?;
+
+    dump_post(&post)
 }

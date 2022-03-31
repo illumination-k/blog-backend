@@ -62,6 +62,31 @@ pub enum SubCommands {
         datetime_format: Option<String>,
     },
 
+    #[structopt(name = "replace", about = "replace frontmatter of the post")]
+    #[structopt(setting(clap::AppSettings::ColoredHelp))]
+    Replace {
+        #[structopt(short = "-i", long = "input")]
+        input: PathBuf,
+        #[structopt(long = "uuid")]
+        uuid: Option<String>,
+        #[structopt(long = "title")]
+        title: Option<String>,
+        #[structopt(long = "description")]
+        description: Option<String>,
+        #[structopt(long = "category")]
+        category: Option<String>,
+        #[structopt(long = "lang")]
+        lang: Option<String>,
+        #[structopt(long = "tags")]
+        tags: Option<Vec<String>>,
+        #[structopt(long = "created-at")]
+        created_at: Option<String>,
+        #[structopt(long = "updated-at")]
+        updated_at: Option<String>,
+        #[structopt(long = "write")]
+        write: bool,
+    },
+
     #[structopt(
         name = "dump",
         about = "dump markdown from index with created_at and updated_at"

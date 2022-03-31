@@ -21,6 +21,9 @@ use tantivy::query::AllQuery;
 use tantivy::Index;
 
 use crate::args::{LogLevel, Opt, SubCommands};
+use crate::io::{read_string, write_string};
+use crate::markdown::dump::dump_post;
+use crate::markdown::frontmatter::find_frontmatter_block;
 use crate::markdown::template::template;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
@@ -81,7 +84,58 @@ fn main() -> Result<()> {
         } => {
             print!("{}", template(with_date, datetime_format)?);
         }
+        SubCommands::Replace {
+            input,
+            uuid,
+            title,
+            description,
+            category,
+            lang,
+            tags,
+            created_at,
+            updated_at,
+            write,
+        } => {
+            eprintln!("input: {:?}", input);
+            let text = read_string(input)?;
+            let (matter, body) = match find_frontmatter_block(&text) {
+                Some((fm_start, fm_end)) => (&text[fm_start..fm_end], &text[fm_end..]),
+                None => ("", text.as_str()),
+            };
 
+            let created_at = Some(if let Some(created_at) = created_at {
+                markdown::frontmatter::parse_date_with_format(created_at)
+            } else {
+                markdown::frontmatter::DateTimeWithFormat::default()
+            });
+
+            let updated_at = Some(if let Some(updated_at) = updated_at {
+                markdown::frontmatter::parse_date_with_format(updated_at)
+            } else {
+                markdown::frontmatter::DateTimeWithFormat::default()
+            });
+
+            let matter = markdown::frontmatter::replace_frontmatter(
+                matter,
+                uuid,
+                title,
+                category,
+                lang,
+                description,
+                tags,
+                &created_at,
+                &updated_at,
+            )?;
+
+            let post = posts::Post::new(posts::path_to_slug(input), matter, body.to_string());
+
+            let (_, content) = dump_post(&post)?;
+            if *write {
+                write_string(input, &content)?;
+            } else {
+                println!("{content}")
+            };
+        }
         SubCommands::Dump { outdir, index_dir } => {
             let index = Index::open_in_dir(index_dir)?;
             if !outdir.exists() {
