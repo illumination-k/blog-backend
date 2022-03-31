@@ -2,7 +2,7 @@ pub mod dump;
 pub mod extract_text;
 pub mod frontmatter;
 pub mod index;
-pub mod reader;
+pub mod utils;
 pub mod template;
 
 use std::ffi::OsStr;

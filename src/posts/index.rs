@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tantivy::Index;
 
-use super::reader::get_all_posts;
+use super::utils::get_all_posts;
 use crate::io;
 use crate::posts::dump::dump_doc;
 use crate::text_engine::query::put;
