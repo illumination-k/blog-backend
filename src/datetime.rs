@@ -1,5 +1,13 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OrderBy {
+    CreatedAt,
+    UpdatedAt,
+}
 
 pub const SUPPORT_DATETIME_FORMAT: [&str; 2] = ["%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"];
 pub const SUPPORT_DATE_FORMAT: [&str; 2] = ["%Y/%m/%d", "%Y-%m-%d"];
@@ -86,6 +94,42 @@ pub fn parse_datetime(
     }
 
     Err(anyhow!(format!("Cannot Parse {}", s)))
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DateTimeWithFormat {
+    datetime: DateTime<Utc>,
+    format: DateTimeFormat,
+}
+
+impl DateTimeWithFormat {
+    pub fn new(datetime: DateTime<Utc>, format: DateTimeFormat) -> Self {
+        Self { datetime, format }
+    }
+
+    pub fn now(format: &DateTimeFormat) -> Self {
+        Self::new(Utc::now(), format.to_owned())
+    }
+
+    pub fn datetime(&self) -> DateTime<Utc> {
+        self.datetime
+    }
+
+    pub fn format(&self) -> DateTimeFormat {
+        self.format.clone()
+    }
+}
+
+impl ToString for DateTimeWithFormat {
+    fn to_string(&self) -> String {
+        self.format.format(self.datetime)
+    }
+}
+
+impl Default for DateTimeWithFormat {
+    fn default() -> Self {
+        Self::now(&DateTimeFormat::RFC3339)
+    }
 }
 
 #[cfg(test)]

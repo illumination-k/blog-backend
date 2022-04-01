@@ -18,7 +18,7 @@ pub fn extract_text(markdown_text: &str) -> String {
 mod test {
     use super::*;
     use crate::io::read_string;
-    use crate::markdown::frontmatter::split_frontmatter_and_content;
+    use crate::posts::frontmatter::split_frontmatter_and_content;
 
     #[test]
     fn test_extract_text() {
@@ -26,6 +26,18 @@ mod test {
         let (_, markdown_text) = split_frontmatter_and_content(&markdown_text);
 
         let text = extract_text(&markdown_text);
-        dbg!(&text);
+        assert_eq!(
+            &text,
+            r#"TEST
+これはテストです。
+リスト1
+リスト2
+self
+fn main() {
+    println!("Hello World")
+}
+
+Some Codes"#
+        )
     }
 }

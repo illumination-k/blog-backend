@@ -1,9 +1,9 @@
 use anyhow::Result;
 use tantivy::Index;
 
-use super::reader::get_all_posts;
+use super::utils::get_all_posts;
 use crate::io;
-use crate::markdown::dump::dump_doc;
+use crate::posts::dump::dump_doc;
 use crate::text_engine::query::put;
 
 pub fn build(glob_pattern: &str, index: &Index) -> Result<()> {

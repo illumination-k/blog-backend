@@ -1,53 +1,14 @@
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use uuid::Uuid;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::{
+    datetime::{parse_datetime, DateTimeWithFormat},
     posts::Lang,
-    text_engine::{
-        datetime::{parse_datetime, DateTimeFormat},
-        schema::PostField,
-    },
+    text_engine::schema::PostField,
 };
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct DateTimeWithFormat {
-    datetime: DateTime<Utc>,
-    format: DateTimeFormat,
-}
-
-impl DateTimeWithFormat {
-    pub fn new(datetime: DateTime<Utc>, format: DateTimeFormat) -> Self {
-        Self { datetime, format }
-    }
-
-    pub fn now(format: &DateTimeFormat) -> Self {
-        Self::new(Utc::now(), format.to_owned())
-    }
-
-    pub fn datetime(&self) -> DateTime<Utc> {
-        self.datetime
-    }
-
-    pub fn format(&self) -> DateTimeFormat {
-        self.format.clone()
-    }
-}
-
-impl ToString for DateTimeWithFormat {
-    fn to_string(&self) -> String {
-        self.format.format(self.datetime)
-    }
-}
-
-impl Default for DateTimeWithFormat {
-    fn default() -> Self {
-        Self::now(&DateTimeFormat::RFC3339)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FrontMatter {
@@ -228,15 +189,27 @@ fn get_str_from_yaml(doc: &Yaml, field: PostField) -> Result<String> {
 
 pub fn parse_date_with_format(date_string: &str) -> DateTimeWithFormat {
     match parse_datetime(date_string, None) {
-        Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
+        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
         Err(e) => panic!("{}", e),
     }
 }
 
 pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Option<DateTimeWithFormat> {
     doc[key].as_str().map(|s| match parse_datetime(s, None) {
-        Ok((format, datetime)) => DateTimeWithFormat { datetime, format },
+        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
         Err(e) => panic!("{}", e),
+    })
+}
+
+fn get_tags_from_yaml(doc: &Yaml) -> Option<Vec<String>> {
+    doc[PostField::Tags.as_str()].as_vec().map(|t| {
+        t.iter()
+            .map(|ss| match ss {
+                Yaml::Integer(i) => i.to_string(),
+                Yaml::String(s) => s.to_owned(),
+                _ => panic!("Unsupported tag type. Tags must be intger or string"),
+            })
+            .collect_vec()
     })
 }
 
@@ -255,6 +228,7 @@ pub fn get_or_fill_str_from_yaml<S: ToString>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn replace_frontmatter(
     frontmatter: &str,
     uuid: &Option<String>,
@@ -281,15 +255,7 @@ pub fn replace_frontmatter(
     let tags = if let Some(tags) = tags {
         Some(tags.to_owned())
     } else {
-        doc["tags"].as_vec().map(|t| {
-            t.iter()
-                .map(|ss| match ss {
-                    Yaml::Integer(i) => i.to_string(),
-                    Yaml::String(s) => s.to_owned(),
-                    _ => panic!("Unsupported tag type. Tags must be intger or string"),
-                })
-                .collect_vec()
-        })
+        get_tags_from_yaml(doc)
     };
 
     let created_at = if let Some(created_at) = created_at {
@@ -324,15 +290,7 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let category = get_str_from_yaml(doc, PostField::Category)?;
     let description = get_str_from_yaml(doc, PostField::Description)?;
 
-    let tags = doc["tags"].as_vec().map(|t| {
-        t.iter()
-            .map(|ss| match ss {
-                Yaml::Integer(i) => i.to_string(),
-                Yaml::String(s) => s.to_owned(),
-                _ => panic!("Unsupported tag type. Tags must be intger or string"),
-            })
-            .collect_vec()
-    });
+    let tags = get_tags_from_yaml(doc);
 
     let lang = match &doc["lang"] {
         Yaml::BadValue => Lang::Ja,
@@ -367,7 +325,10 @@ pub fn split_frontmatter_and_content(text: &str) -> (Option<FrontMatter>, &str) 
 
 #[cfg(test)]
 mod test {
+    use chrono::Utc;
     use yaml_rust::YamlEmitter;
+
+    use crate::datetime::DateTimeFormat;
 
     use super::*;
     #[test]

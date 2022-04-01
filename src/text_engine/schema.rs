@@ -8,7 +8,7 @@ use tantivy::schema::*;
 #[cfg(test)]
 use strum_macros::{EnumCount, EnumIter};
 
-use super::datetime::DateTimeFormat;
+use crate::datetime::DateTimeFormat;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(test, derive(EnumIter, EnumCount))]

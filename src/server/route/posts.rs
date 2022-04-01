@@ -13,7 +13,7 @@ use crate::text_engine::{
     schema::{FieldGetter, PostField},
 };
 
-use crate::text_engine::query::OrderBy;
+use crate::datetime;
 
 #[get("/post/uuid/{uuid}")]
 async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> HttpResponse {
@@ -59,6 +59,7 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Order {
     Asc,
     Desc,
@@ -69,7 +70,7 @@ pub struct GetPostsQueryParams {
     lang: Option<String>,
     category: Option<String>,
     tag: Option<String>,
-    order_by: Option<OrderBy>,
+    order_by: Option<datetime::OrderBy>,
     order: Option<Order>,
 }
 
@@ -94,7 +95,7 @@ impl GetPostsQueryParams {
         .collect()
     }
 
-    pub fn order_by(&self) -> Option<OrderBy> {
+    pub fn order_by(&self) -> Option<datetime::OrderBy> {
         self.order_by.to_owned()
     }
 
