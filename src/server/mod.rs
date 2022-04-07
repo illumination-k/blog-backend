@@ -27,9 +27,12 @@ pub async fn main(
     );
     eprintln!("start running on {}:{}", host, port);
 
+    let static_uri = "/public";
+    eprintln!("static uri: {}", static_uri);
+
     let schema = build_schema();
     let index = read_or_build_index(schema, &index_dir, false)?;
-    let (categories, tags) = get_tags_and_categories(&index)?;
+    let (tags, categories) = get_tags_and_categories(&index)?;
     HttpServer::new(move || {
         if let Some(cors_origin) = _cors_origin.as_ref() {
             App::new()
@@ -45,7 +48,7 @@ pub async fn main(
                 .service(route::hello)
                 .service(route::tag_list)
                 .service(route::category_list)
-                .service(actix_files::Files::new("/public", &static_dir).show_files_listing())
+                .service(actix_files::Files::new(static_uri, &static_dir).show_files_listing())
         } else {
             App::new()
                 .app_data(web::Data::new(index.clone()))
@@ -60,13 +63,12 @@ pub async fn main(
                 .service(route::hello)
                 .service(route::tag_list)
                 .service(route::category_list)
-                .service(actix_files::Files::new("/public", &static_dir).show_files_listing())
+                .service(actix_files::Files::new(static_uri, &static_dir).show_files_listing())
         }
     })
     .bind(&format!("{}:{}", host, port))?
     .run()
-    .await
-    .expect("Error in build httpserver");
+    .await?;
     Ok(())
 }
 
@@ -118,6 +120,26 @@ mod test {
         )
         .await;
         let req = test::TestRequest::get().uri("/posts").to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+    }
+
+    #[actix_web::test]
+    async fn test_posts_search_empty() {
+        let index_dir = "test/index";
+
+        let schema = build_schema();
+        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(route::search::search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/search").to_request();
 
         let resp = app.call(req).await.unwrap();
 
