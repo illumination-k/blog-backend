@@ -13,11 +13,13 @@ async fn hello() -> impl Responder {
 #[get("/tags")]
 async fn tag_list(tags: web::Data<TagList>) -> impl Responder {
     let tags = tags.into_inner().0.clone();
+    info!("tags: {:?}", tags);
     HttpResponse::Ok().json(tags)
 }
 
 #[get("/categories")]
 async fn category_list(categories: web::Data<CategoryList>) -> impl Responder {
     let categories = categories.into_inner().0.clone();
+    info!("categories: {:?}", categories);
     HttpResponse::Ok().json(categories)
 }

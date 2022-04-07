@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpRequest, HttpResponse};
 use itertools::Itertools;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use tantivy::{
     query::{AllQuery, BooleanQuery, Occur, Query, TermQuery},
@@ -58,14 +58,14 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
     HttpResponse::Ok().json(doc)
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Order {
     Asc,
     Desc,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetPostsQueryParams {
     lang: Option<String>,
     category: Option<String>,
@@ -105,7 +105,7 @@ impl GetPostsQueryParams {
 }
 
 #[get("/posts")]
-async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
+async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
     let index = index.into_inner();
     let schema = index.schema();
     let fb = FieldGetter::new(&schema);
@@ -139,7 +139,7 @@ async fn get_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     } else {
         Vec::new()
     };
-    eprintln!("{:?}", docs);
+    info!("{:?}", docs);
     match params.get_order() {
         Order::Asc => docs.reverse(),
         Order::Desc => {}
