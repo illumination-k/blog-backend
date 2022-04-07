@@ -68,11 +68,12 @@ pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String
         for doc in docs.iter() {
             let category = fg.get_text(doc, PostField::Category)?;
             let inner_tags = fg.get_tags(doc)?;
+
             categories.insert(category);
             tags.extend(inner_tags.into_iter())
         }
 
-        return Ok((categories.into_iter().collect(), tags.into_iter().collect()));
+        return Ok((tags.into_iter().collect(), categories.into_iter().collect()));
     }
 
     Ok((Vec::new(), Vec::new()))
@@ -207,12 +208,95 @@ pub fn search(
 mod test {
     use std::path::Path;
 
-    use super::put;
+    use super::*;
     use crate::{
         posts::Post,
         text_engine::{index::read_or_build_index, schema::build_schema},
     };
     use tempdir::TempDir;
+    use crate::test_utility::build_random_posts_index;
+
+    #[test]
+    fn test_get_all() -> Result<()> {
+        let temp_dir = TempDir::new(&format!("temp_rand_index_{}", uuid::Uuid::new_v4().to_string()))?;
+        let (posts, index) = build_random_posts_index(10, temp_dir.path())?;
+        assert_eq!(posts.len(), 10);
+        
+        let q: Box<dyn Query> = Box::new(AllQuery {});
+        let docs = get_all(&q, &index, None)?;
+        assert!(docs.is_some());
+        assert_eq!(docs.unwrap().len(), 10);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_by_uuid() -> Result<()> {
+        let temp_dir = TempDir::new(&format!("temp_rand_index_{}", uuid::Uuid::new_v4().to_string()))?;
+        let schema = build_schema();
+        let (posts, index) = build_random_posts_index(5, temp_dir.path())?;
+        
+        for post in posts.iter() {
+            let uuid = post.uuid();
+            let doc = get_by_uuid(&uuid, &index)?;
+            let res_post = Post::from_doc(&doc, &schema)?;
+            assert_eq!(res_post.uuid(), uuid);
+            assert!(res_post.equal_from_doc(&post));
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_by_slug_and_lang() -> Result<()> {
+        let temp_dir = TempDir::new(&format!("temp_rand_index_{}", uuid::Uuid::new_v4().to_string()))?;
+        let schema = build_schema();
+        let (posts, index) = build_random_posts_index(5, temp_dir.path())?;
+        
+        for post in posts.iter() {
+            let slug = post.slug();
+            let lang = post.lang();
+            
+            let doc = get_by_slug_with_lang(&slug, lang.as_str(), &&index)?;
+            let res_post = Post::from_doc(&doc, &schema)?;
+            
+            assert!(post.equal_from_doc(&res_post));
+        }
+
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_tags_and_categories() -> Result<()> {
+        let temp_dir = tempdir::TempDir::new(&format!("temp_rand_index_{}", uuid::Uuid::new_v4().to_string()))?;
+        let (posts, index) = build_random_posts_index(10, temp_dir.path())?;
+        
+        let (mut tags, mut categories) = get_tags_and_categories(&index)?;
+
+        let mut rand_tags = HashSet::new();
+        let mut rand_categories = HashSet::new();
+        
+        for post in posts.iter() {
+            rand_categories.insert(post.category());
+            if let Some(tags) = post.tags() {
+                for tag in tags.iter() {
+                    rand_tags.insert(tag.to_owned());
+                }
+            }
+        }
+
+        let mut rand_tags: Vec<String> = rand_tags.into_iter().collect();
+        let mut rand_categories: Vec<String> = rand_categories.into_iter().collect();
+        tags.sort_unstable();
+        categories.sort_unstable();
+        rand_tags.sort_unstable();
+        rand_categories.sort_unstable();
+
+        assert_eq!(tags, rand_tags);
+        assert_eq!(categories, rand_categories);
+
+        Ok(())
+    }
 
     #[test]
     fn test_put() {
