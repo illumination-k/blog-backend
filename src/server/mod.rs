@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{middleware, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -26,15 +26,19 @@ pub async fn main(
         static_dir.display()
     );
     eprintln!("start running on {}:{}", host, port);
+
+    let static_uri = "/public";
+    eprintln!("static uri: {}", static_uri);
+
     let schema = build_schema();
     let index = read_or_build_index(schema, &index_dir, false)?;
-    let (categories, tags) = get_tags_and_categories(&index)?;
+    let (tags, categories) = get_tags_and_categories(&index)?;
     HttpServer::new(move || {
         if let Some(cors_origin) = _cors_origin.as_ref() {
             App::new()
-                .data(index.clone())
-                .data(CategoryList(categories.clone()))
-                .data(TagList(tags.clone()))
+                .app_data(web::Data::new(index.clone()))
+                .app_data(web::Data::new(CategoryList(categories.clone())))
+                .app_data(web::Data::new(TagList(tags.clone())))
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default().allowed_origin(cors_origin))
                 .service(route::posts::get_post_by_id)
@@ -44,12 +48,12 @@ pub async fn main(
                 .service(route::hello)
                 .service(route::tag_list)
                 .service(route::category_list)
-                .service(actix_files::Files::new("/public", &static_dir).show_files_listing())
+                .service(actix_files::Files::new(static_uri, &static_dir).show_files_listing())
         } else {
             App::new()
-                .data(index.clone())
-                .data(CategoryList(categories.clone()))
-                .data(TagList(tags.clone()))
+                .app_data(web::Data::new(index.clone()))
+                .app_data(web::Data::new(CategoryList(categories.clone())))
+                .app_data(web::Data::new(TagList(tags.clone())))
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default())
                 .service(route::posts::get_post_by_id)
@@ -59,12 +63,86 @@ pub async fn main(
                 .service(route::hello)
                 .service(route::tag_list)
                 .service(route::category_list)
-                .service(actix_files::Files::new("/public", &static_dir).show_files_listing())
+                .service(actix_files::Files::new(static_uri, &static_dir).show_files_listing())
         }
     })
     .bind(&format!("{}:{}", host, port))?
     .run()
-    .await
-    .expect("Error in build httpserver");
+    .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use actix_web::{
+        dev::Service,
+        http::StatusCode,
+        test,
+        web::{self, Bytes},
+    };
+    use std::path::Path;
+
+    #[actix_web::test]
+    async fn test_tags_categories() {
+        let tags: Vec<String> = vec!["A", "B", "C"].iter().map(|x| x.to_string()).collect();
+        let categories: Vec<String> = vec!["A", "B", "C"].iter().map(|x| x.to_string()).collect();
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(CategoryList(categories.clone())))
+                .app_data(web::Data::new(TagList(tags.clone())))
+                .service(route::tag_list)
+                .service(route::category_list),
+        )
+        .await;
+
+        for uri in &["/tags", "/categories"] {
+            let req = test::TestRequest::get().uri(uri).to_request();
+            let resp = app.call(req).await.unwrap();
+
+            assert_eq!(resp.response().status(), StatusCode::OK);
+            let v = test::read_body(resp).await;
+            assert_eq!(v, Bytes::from_static(b"[\"A\",\"B\",\"C\"]"));
+        }
+    }
+
+    #[actix_web::test]
+    async fn test_posts_get() {
+        let index_dir = "test/index";
+
+        let schema = build_schema();
+        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(route::posts::get_posts),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/posts").to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+    }
+
+    #[actix_web::test]
+    async fn test_posts_search_empty() {
+        let index_dir = "test/index";
+
+        let schema = build_schema();
+        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(route::search::search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/search").to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+    }
 }

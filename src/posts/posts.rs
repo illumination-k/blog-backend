@@ -13,7 +13,11 @@ use crate::datetime::{DateTimeFormat, DateTimeWithFormat};
 use crate::io::read_string;
 use crate::text_engine::schema::{FieldGetter, PostField};
 
+#[cfg(test)]
+use strum_macros::{EnumCount, EnumIter};
+
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(EnumIter, EnumCount))]
 pub enum Lang {
     Ja,
     En,
@@ -75,6 +79,16 @@ impl Post {
     #[allow(dead_code)]
     pub fn body(&self) -> String {
         self.body.clone()
+    }
+
+    #[allow(dead_code)]
+    pub fn category(&self) -> String {
+        self.matter.category()
+    }
+
+    #[allow(dead_code)]
+    pub fn tags(&self) -> Option<Vec<String>> {
+        self.matter.tags()
     }
 
     pub fn title(&self) -> String {

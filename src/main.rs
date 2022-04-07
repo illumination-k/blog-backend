@@ -8,6 +8,9 @@ mod posts;
 mod server;
 mod text_engine;
 
+#[cfg(test)]
+mod test_utility;
+
 use anyhow::{anyhow, Result};
 use std::env::set_var;
 use std::fs;

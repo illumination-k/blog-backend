@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrderBy {
     CreatedAt,
