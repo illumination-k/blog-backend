@@ -1,5 +1,4 @@
 use actix_web::{get, web, HttpRequest, HttpResponse};
-use itertools::Itertools;
 use serde::Deserialize;
 use std::ops::Deref;
 use tantivy::{
@@ -10,7 +9,7 @@ use tantivy::{
 
 use crate::text_engine::{
     query::search,
-    schema::{FieldGetter, PostField},
+    schema::{FieldGetter, PostField, JSONDcument},
 };
 
 #[derive(Debug, Deserialize)]
@@ -32,7 +31,7 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
     let fields = [PostField::Title, PostField::Description, PostField::RawText]
         .into_iter()
         .map(|pf| fb.get_field(pf))
-        .collect_vec();
+        .collect();
 
     let limit = if let Some(limit) = params.limit.as_ref() {
         *limit
@@ -40,7 +39,7 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
         10
     };
 
-    let docs = if let Some(query) = params.query.to_owned() {
+    let docs: Vec<JSONDcument> = if let Some(query) = params.query.to_owned() {
         match search(&query.to_lowercase(), fields, limit, index.deref()) {
             Ok(docs) => docs,
             Err(e) => {
@@ -50,7 +49,7 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
         }
         .iter()
         .flat_map(|doc| fb.to_json(doc))
-        .collect_vec()
+        .collect()
     } else {
         let q: Box<dyn Query> = Box::new(AllQuery {});
         let searcher = index.reader().expect("Not error in search api").searcher();
@@ -61,7 +60,7 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
             .into_iter()
             .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
             .flat_map(|doc| fb.to_json(&doc).ok())
-            .collect_vec()
+            .collect()
     };
     HttpResponse::Ok().json(docs)
 }

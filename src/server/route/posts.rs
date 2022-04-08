@@ -1,5 +1,4 @@
 use actix_web::{get, web, HttpRequest, HttpResponse};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use tantivy::{
@@ -144,7 +143,7 @@ async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
     let mut docs = if let Some(docs) = _docs {
         docs.iter()
             .flat_map(|doc| fb.to_json(doc).ok())
-            .collect_vec()
+            .collect()
     } else {
         Vec::new()
     };

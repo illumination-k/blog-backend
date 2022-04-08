@@ -2,7 +2,6 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
-use itertools::Itertools;
 
 use tantivy::schema::*;
 
@@ -208,7 +207,7 @@ impl Post {
                 tags.split(' ')
                     .into_iter()
                     .map(|s| s.to_string())
-                    .collect_vec(),
+                    .collect(),
             )
         };
 
