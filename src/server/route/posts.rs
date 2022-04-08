@@ -141,9 +141,7 @@ async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
     };
 
     let mut docs = if let Some(docs) = _docs {
-        docs.iter()
-            .flat_map(|doc| fb.to_json(doc).ok())
-            .collect()
+        docs.iter().flat_map(|doc| fb.to_json(doc).ok()).collect()
     } else {
         Vec::new()
     };

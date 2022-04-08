@@ -9,7 +9,7 @@ use tantivy::{
 
 use crate::text_engine::{
     query::search,
-    schema::{FieldGetter, PostField, JSONDcument},
+    schema::{FieldGetter, JSONDcument, PostField},
 };
 
 #[derive(Debug, Deserialize)]

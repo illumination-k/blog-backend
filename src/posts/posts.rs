@@ -100,7 +100,7 @@ impl Post {
     pub fn tags(&self) -> Option<Vec<String>> {
         self.matter.tags()
     }
-    
+
     #[allow(dead_code)]
     pub fn description(&self) -> String {
         self.matter.description()
@@ -208,12 +208,7 @@ impl Post {
         let tags = if tags.is_empty() {
             None
         } else {
-            Some(
-                tags.split(' ')
-                    .into_iter()
-                    .map(|s| s.to_string())
-                    .collect(),
-            )
+            Some(tags.split(' ').into_iter().map(|s| s.to_string()).collect())
         };
 
         Ok(Self {

@@ -112,14 +112,14 @@ pub struct PostResponse {
 
 impl PartialEq<Post> for PostResponse {
     fn eq(&self, other: &Post) -> bool {
-        let mut flag = self.uuid == other.uuid() && 
-            self.slug == other.slug() &&
-            self.title == other.title() &&
-            self.description == other.description() &&
-            self.category == other.category() &&
-            self.lang == other.lang().to_string() &&
-            self.body == other.body();
-        
+        let mut flag = self.uuid == other.uuid()
+            && self.slug == other.slug()
+            && self.title == other.title()
+            && self.description == other.description()
+            && self.category == other.category()
+            && self.lang == other.lang().to_string()
+            && self.body == other.body();
+
         // if post tags is None, postresponse is empty vec
         if let Some(tags) = other.tags() {
             flag = flag && tags == self.tags;
