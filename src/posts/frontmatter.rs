@@ -90,20 +90,12 @@ impl FrontMatter {
     /// It is useful when comparing the post from doc and
     /// the post which has no updated_at and created_at field.  
     pub fn equal_matter_from_doc(&self, other: &FrontMatter) -> bool {
-        let flag = self.uuid == other.uuid
+        self.uuid == other.uuid
             && self.title == other.title
             && self.description == other.description
             && self.category == other.category
             && self.tags == other.tags
-            && self.lang == other.lang;
-
-        // if self.created_at.is_some() {
-        //     flag = flag && self.created_at == other.created_at
-        // }
-
-        // do not compare updated at!
-
-        flag
+            && self.lang == other.lang
     }
 
     pub fn to_yaml(&self) -> Yaml {

@@ -29,6 +29,7 @@ use crate::posts::frontmatter::find_frontmatter_block;
 use crate::posts::template;
 use crate::text_engine::{index::read_or_build_index, schema::build_schema};
 
+#[cfg(not(tarpaulin_include))]
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
