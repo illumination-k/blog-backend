@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/illumination-k/smark/branch/main/graph/badge.svg?token=3I8IEVXO2Q)](https://codecov.io/gh/illumination-k/smark)
 
-[![API Documetation](https://github.com/illumination-k/smark/actions/workflows/redoc.yml/badge.svg)]
+[![API Documetation](https://github.com/illumination-k/smark/actions/workflows/redoc.yml/badge.svg)](https://illumination-k.github.io/smark/)
 
 `smark` is the tool to serve markdown as API server. 
 
