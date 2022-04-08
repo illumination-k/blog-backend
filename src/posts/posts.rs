@@ -44,6 +44,12 @@ impl Lang {
     }
 }
 
+impl ToString for Lang {
+    fn to_string(&self) -> String {
+        self.as_str().to_string()
+    }
+}
+
 pub fn path_to_slug(path: &Path) -> String {
     path.file_name()
         .map(rsplit_file_at_dot)

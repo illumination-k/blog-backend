@@ -1,4 +1,4 @@
-name: CodeCov
+name: fmt, lint and build
 
 on:
   push:
@@ -23,11 +23,11 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: format
+        run: cargo fmt --check
 
-      - name: Test and push to codecov.io
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          cargo install cargo-tarpaulin
-          cargo tarpaulin --out Xml
-          bash <(curl -s https://codecov.io/bash) -X gcov -t $CODECOV_TOKEN
+      - name: lint
+        run: cargo clippy
+
+      - name: build
+        run: cargo build
