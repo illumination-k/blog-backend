@@ -2,7 +2,9 @@ name: CodeCov
 
 on:
   push:
-    branches: [main]
+    branches-ignore:
+      - version/*
+
   pull_request:
     branches: [main]
 
