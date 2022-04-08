@@ -22,7 +22,7 @@ jobs:
         run: redoc-cli bundle openapi.yml
       - run: ls
       - name: Move to docs
-        run: mkdir -p docs && mv index.html
+        run: mkdir -p docs && mv redoc-static.html docs/index.html
       - name: Deploy github pages
         uses: peaceiris/actions-gh-pages@v3
         with:
