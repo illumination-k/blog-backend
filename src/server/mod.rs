@@ -82,6 +82,8 @@ mod test {
         web::{self, Bytes},
     };
     use std::path::Path;
+    use crate::test_utility::*;
+    use tempdir::TempDir;
 
     #[actix_web::test]
     async fn test_tags_categories() {
@@ -107,7 +109,7 @@ mod test {
     }
 
     #[actix_web::test]
-    async fn test_posts_get() {
+    async fn test_posts_getall_empty() {
         let index_dir = "test/index";
 
         let schema = build_schema();
@@ -127,6 +129,26 @@ mod test {
     }
 
     #[actix_web::test]
+    async fn test_posts_getall_lang() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        )).unwrap();
+        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(route::posts::get_posts),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/posts").param("lang", "en").to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+    }
+    
+    #[actix_web::test]
     async fn test_posts_search_empty() {
         let index_dir = "test/index";
 
@@ -144,5 +166,29 @@ mod test {
         let resp = app.call(req).await.unwrap();
 
         assert_eq!(resp.response().status(), StatusCode::OK);
+    }
+
+    #[actix_web::test]
+    async fn test_get_by_uuid() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        )).unwrap();
+        let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(route::posts::get_post_by_id),
+        )
+        .await;
+
+        for post in posts.iter() {
+            let path = format!("/post/uuid/{}", post.uuid());
+            let req = test::TestRequest::get().uri(&path).to_request();
+            let resp = app.call(req).await.unwrap();
+
+            assert_eq!(resp.response().status(), StatusCode::OK);
+        }
     }
 }
