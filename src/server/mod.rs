@@ -75,6 +75,7 @@ pub async fn main(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test_utility::*;
     use actix_web::{
         dev::Service,
         http::StatusCode,
@@ -82,7 +83,6 @@ mod test {
         web::{self, Bytes},
     };
     use std::path::Path;
-    use crate::test_utility::*;
     use tempdir::TempDir;
 
     #[actix_web::test]
@@ -133,7 +133,8 @@ mod test {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
-        )).unwrap();
+        ))
+        .unwrap();
         let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
 
         let app = test::init_service(
@@ -142,12 +143,15 @@ mod test {
                 .service(route::posts::get_posts),
         )
         .await;
-        let req = test::TestRequest::get().uri("/posts").param("lang", "en").to_request();
+        let req = test::TestRequest::get()
+            .uri("/posts")
+            .param("lang", "en")
+            .to_request();
         let resp = app.call(req).await.unwrap();
 
         assert_eq!(resp.response().status(), StatusCode::OK);
     }
-    
+
     #[actix_web::test]
     async fn test_posts_search_empty() {
         let index_dir = "test/index";
@@ -173,7 +177,8 @@ mod test {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
-        )).unwrap();
+        ))
+        .unwrap();
         let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
 
         let app = test::init_service(
