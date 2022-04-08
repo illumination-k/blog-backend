@@ -66,6 +66,9 @@ paths:
           schema:
             type: string
             default: ja
+            enum:
+              - ja
+              - en
       responses:
         "200":
           description: "Get posts by slug and lang"
@@ -115,6 +118,7 @@ paths:
                   $ref: "#/components/schemas/Post"
 
   "/search":
+    summary: "Search posts"
     description: "Search posts with tanitivy query language"
     get:
       parameters:
@@ -154,6 +158,9 @@ components:
           type: string
         lang:
           type: string
+          enum:
+            - ja
+            - en
         tags:
           type: array
           items:

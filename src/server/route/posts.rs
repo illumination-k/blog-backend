@@ -8,9 +8,12 @@ use tantivy::{
     Index, Term,
 };
 
-use crate::text_engine::{
-    query::{get_all, get_by_slug_with_lang, get_by_uuid},
-    schema::{FieldGetter, PostField},
+use crate::{
+    posts::Lang,
+    text_engine::{
+        query::{get_all, get_by_slug_with_lang, get_by_uuid},
+        schema::{FieldGetter, PostField},
+    },
 };
 
 use crate::datetime;
@@ -28,11 +31,11 @@ async fn get_post_by_id(index: web::Data<Index>, uuid: web::Path<String>) -> Htt
 #[derive(Debug, Deserialize)]
 pub struct GetSlugParams {
     slug: String,
-    lang: String,
+    lang: Option<String>,
 }
 
 #[get("/post/slug")]
-async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
+async fn get_post_by_slug_and_lang(index: web::Data<Index>, req: HttpRequest) -> HttpResponse {
     let index = index.into_inner();
     let schema = index.schema();
     let fb = FieldGetter::new(&schema);
@@ -41,7 +44,13 @@ async fn get_post_by_slug(index: web::Data<Index>, req: HttpRequest) -> HttpResp
         Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     };
 
-    let doc = match get_by_slug_with_lang(&params.slug, &params.lang, &index) {
+    let lang = if let Some(lang) = params.lang.as_ref() {
+        lang.to_owned()
+    } else {
+        Lang::Ja.to_string()
+    };
+
+    let doc = match get_by_slug_with_lang(&params.slug, &lang, &index) {
         Ok(_doc) => match fb.to_json(&_doc) {
             Ok(doc) => doc,
             Err(e) => {
