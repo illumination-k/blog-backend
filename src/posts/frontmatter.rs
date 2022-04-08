@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use uuid::Uuid;
 use yaml_rust::{Yaml, YamlLoader};
@@ -135,7 +134,7 @@ impl FrontMatter {
         }
 
         if let Some(tags) = self.tags() {
-            let tags = tags.into_iter().map(Yaml::String).collect_vec();
+            let tags = tags.into_iter().map(Yaml::String).collect();
             lm.insert(
                 Yaml::String(PostField::Tags.as_str().to_string()),
                 Yaml::Array(tags),
@@ -201,7 +200,7 @@ fn get_tags_from_yaml(doc: &Yaml) -> Option<Vec<String>> {
                 Yaml::String(s) => s.to_owned(),
                 _ => panic!("Unsupported tag type. Tags must be intger or string"),
             })
-            .collect_vec()
+            .collect()
     })
 }
 

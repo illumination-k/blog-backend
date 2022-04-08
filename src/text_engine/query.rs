@@ -211,7 +211,7 @@ pub fn search(
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
+    use crate::test_utility::*;
 
     use super::*;
     use crate::posts::frontmatter::FrontMatter;
@@ -323,10 +323,13 @@ mod test {
         let index =
             read_or_build_index(schema.clone(), &temp_dir.path().join("put"), false).unwrap();
         let mut index_writer = index.writer(100_000_000).unwrap();
-        let post = Post::from_path(Path::new("./test/posts/ja/c1/test_post.md")).unwrap();
+        let post = rand_post();
         let doc = put(&post, &index, &mut index_writer).unwrap().unwrap();
         let post_doc = Post::from_doc(&doc, &schema).unwrap();
         assert!(post.equal_from_doc(&post_doc));
+
+        let none = put(&post_doc, &index, &mut index_writer).unwrap();
+        assert!(none.is_none());
     }
 
     #[test]

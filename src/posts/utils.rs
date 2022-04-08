@@ -1,7 +1,6 @@
 use crate::posts::Post;
 use anyhow::Result;
 use glob::glob;
-use itertools::Itertools;
 use std::path::PathBuf;
 
 pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
@@ -21,7 +20,7 @@ pub fn get_all_posts(glob_pattern: &str) -> Result<Vec<(PathBuf, Post)>> {
                 None
             }
         })
-        .collect_vec();
+        .collect();
 
     Ok(posts)
 }

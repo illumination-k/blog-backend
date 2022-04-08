@@ -1,7 +1,6 @@
 use crate::posts::Lang;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use itertools::Itertools;
 use serde::Serialize;
 use tantivy::schema::*;
 
@@ -233,7 +232,7 @@ impl<'a> FieldGetter<'a> {
             .into_iter()
             .map(|s| s.to_string())
             .filter(|s| !s.is_empty())
-            .collect_vec())
+            .collect())
     }
 
     pub fn to_json(&self, doc: &Document) -> Result<JSONDcument> {

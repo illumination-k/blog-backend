@@ -2,7 +2,6 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
-use itertools::Itertools;
 
 use tantivy::schema::*;
 
@@ -100,6 +99,11 @@ impl Post {
     #[allow(dead_code)]
     pub fn tags(&self) -> Option<Vec<String>> {
         self.matter.tags()
+    }
+
+    #[allow(dead_code)]
+    pub fn description(&self) -> String {
+        self.matter.description()
     }
 
     pub fn title(&self) -> String {
@@ -204,12 +208,7 @@ impl Post {
         let tags = if tags.is_empty() {
             None
         } else {
-            Some(
-                tags.split(' ')
-                    .into_iter()
-                    .map(|s| s.to_string())
-                    .collect_vec(),
-            )
+            Some(tags.split(' ').into_iter().map(|s| s.to_string()).collect())
         };
 
         Ok(Self {
