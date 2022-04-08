@@ -1,10 +1,9 @@
 # smark
 
 [![codecov](https://codecov.io/gh/illumination-k/smark/branch/main/graph/badge.svg?token=3I8IEVXO2Q)](https://codecov.io/gh/illumination-k/smark)
-
 [![API Documetation](https://github.com/illumination-k/smark/actions/workflows/redoc.yml/badge.svg)](https://illumination-k.github.io/smark/)
 
-`smark` is the tool to serve markdown as API server. 
+`smark` is the tool to serve markdown as API server.
 
 This tool provides API to get markdown posts based on tanitivy (full-text search engine implemented by Rust).
 
@@ -14,7 +13,7 @@ Please see [API Documetation](https://illumination-k.github.io/smark/) for more 
 
 You can use release binary from release page.
 
-### Prepare Post
+### Prepare Posts
 
 You can make template markdown with required frontmatters by `template` subcommand.
 
@@ -30,7 +29,7 @@ smark template
 # ---
 ```
 
-### Preparation index
+### Prepare index
 
 You need to prepare index to register your markdown posts.
 Please specify input markdown direcotry and output index direcotry.

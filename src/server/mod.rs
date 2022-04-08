@@ -12,6 +12,7 @@ mod route;
 pub struct CategoryList(Vec<String>);
 pub struct TagList(Vec<String>);
 
+#[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 pub async fn main(
     host: String,
@@ -41,6 +42,7 @@ pub async fn main(
                 .app_data(web::Data::new(TagList(tags.clone())))
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default().allowed_origin(cors_origin))
+                .service(route::openapi::get_openapi_schema)
                 .service(route::posts::get_post_by_id)
                 .service(route::posts::get_posts)
                 .service(route::posts::get_post_by_slug_and_lang)
@@ -56,6 +58,7 @@ pub async fn main(
                 .app_data(web::Data::new(TagList(tags.clone())))
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default())
+                .service(route::openapi::get_openapi_schema)
                 .service(route::posts::get_post_by_id)
                 .service(route::posts::get_posts)
                 .service(route::posts::get_post_by_slug_and_lang)
@@ -70,130 +73,4 @@ pub async fn main(
     .run()
     .await?;
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::test_utility::*;
-    use actix_web::{
-        dev::Service,
-        http::StatusCode,
-        test,
-        web::{self, Bytes},
-    };
-    use std::path::Path;
-    use tempdir::TempDir;
-
-    #[actix_web::test]
-    async fn test_tags_categories() {
-        let tags: Vec<String> = vec!["A", "B", "C"].iter().map(|x| x.to_string()).collect();
-        let categories: Vec<String> = vec!["A", "B", "C"].iter().map(|x| x.to_string()).collect();
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(CategoryList(categories.clone())))
-                .app_data(web::Data::new(TagList(tags.clone())))
-                .service(route::tag_list)
-                .service(route::category_list),
-        )
-        .await;
-
-        for uri in &["/tags", "/categories"] {
-            let req = test::TestRequest::get().uri(uri).to_request();
-            let resp = app.call(req).await.unwrap();
-
-            assert_eq!(resp.response().status(), StatusCode::OK);
-            let v = test::read_body(resp).await;
-            assert_eq!(v, Bytes::from_static(b"[\"A\",\"B\",\"C\"]"));
-        }
-    }
-
-    #[actix_web::test]
-    async fn test_posts_getall_empty() {
-        let index_dir = "test/index";
-
-        let schema = build_schema();
-        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
-
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(route::posts::get_posts),
-        )
-        .await;
-        let req = test::TestRequest::get().uri("/posts").to_request();
-
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-    }
-
-    #[actix_web::test]
-    async fn test_posts_getall_lang() {
-        let temp_dir = TempDir::new(&format!(
-            "temp_rand_index_{}",
-            uuid::Uuid::new_v4().to_string()
-        ))
-        .unwrap();
-        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
-
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(route::posts::get_posts),
-        )
-        .await;
-        let req = test::TestRequest::get()
-            .uri("/posts")
-            .param("lang", "en")
-            .to_request();
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-    }
-
-    #[actix_web::test]
-    async fn test_posts_search_empty() {
-        let index_dir = "test/index";
-
-        let schema = build_schema();
-        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
-
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(route::search::search_posts),
-        )
-        .await;
-        let req = test::TestRequest::get().uri("/search").to_request();
-
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-    }
-
-    #[actix_web::test]
-    async fn test_get_by_uuid() {
-        let temp_dir = TempDir::new(&format!(
-            "temp_rand_index_{}",
-            uuid::Uuid::new_v4().to_string()
-        ))
-        .unwrap();
-        let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
-
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(route::posts::get_post_by_id),
-        )
-        .await;
-
-        for post in posts.iter() {
-            let path = format!("/post/uuid/{}", post.uuid());
-            let req = test::TestRequest::get().uri(&path).to_request();
-            let resp = app.call(req).await.unwrap();
-
-            assert_eq!(resp.response().status(), StatusCode::OK);
-        }
-    }
 }

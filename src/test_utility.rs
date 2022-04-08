@@ -8,6 +8,7 @@ use crate::{
 };
 use anyhow::Result;
 use rand::prelude::IteratorRandom;
+use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use tantivy::Index;
 
@@ -92,4 +93,19 @@ pub fn build_random_posts_index(post_size: usize, index_path: &Path) -> Result<(
     }
 
     Ok((posts, index))
+}
+
+#[cfg(not(tarpaulin_include))]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostResponse {
+    pub uuid: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub lang: String,
+    pub tags: Vec<String>,
+    pub body: String,
+    pub created_at: String,
+    pub updated_at: String,
 }
