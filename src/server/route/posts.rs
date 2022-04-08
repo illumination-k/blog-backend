@@ -205,9 +205,7 @@ mod test {
                 .service(get_posts),
         )
         .await;
-        let req = test::TestRequest::get()
-            .uri("/posts?lang=en")
-            .to_request();
+        let req = test::TestRequest::get().uri("/posts?lang=en").to_request();
         let resp = app.call(req).await.unwrap();
 
         assert_eq!(resp.response().status(), StatusCode::OK);

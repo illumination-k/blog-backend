@@ -56,9 +56,10 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
         let searcher = index.reader().expect("Not error in search api").searcher();
 
         searcher
-            .search(&q, &TopDocs::with_limit(limit)).unwrap()
+            .search(&q, &TopDocs::with_limit(limit))
+            .unwrap()
             .into_iter()
-            .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok() )
+            .flat_map(|(_, doc_address)| searcher.doc(doc_address).ok())
             .flat_map(|doc| fb.to_json(&doc).ok())
             .collect_vec()
     };
@@ -113,9 +114,7 @@ mod test_search {
                 .service(search_posts),
         )
         .await;
-        let req = test::TestRequest::get()
-            .uri("/search?limit=2")
-            .to_request();
+        let req = test::TestRequest::get().uri("/search?limit=2").to_request();
 
         let resp = app.call(req).await.unwrap();
 

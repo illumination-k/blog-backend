@@ -13,7 +13,7 @@ Please see [API Documetation](https://illumination-k.github.io/smark/) for more 
 
 You can use release binary from release page.
 
-### Prepare Post
+### Prepare Posts
 
 You can make template markdown with required frontmatters by `template` subcommand.
 
@@ -29,7 +29,7 @@ smark template
 # ---
 ```
 
-### Preparation index
+### Prepare index
 
 You need to prepare index to register your markdown posts.
 Please specify input markdown direcotry and output index direcotry.
