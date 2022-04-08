@@ -1,0 +1,168 @@
+openapi: 3.0.0
+
+info:
+  title: "smrak API"
+  version: "v0.1.6"
+
+paths:
+  "/":
+    get:
+      responses:
+        "200":
+          description: "Health Check"
+
+  "/tags":
+    get:
+      responses:
+        "200":
+          description: "All tags in posts"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  "/categories":
+    get:
+      responses:
+        "200":
+          description: "All categories in posts"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  "/post/uuid/{uuid}":
+    get:
+      parameters:
+        - name: uuid
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Get posts by uuid"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  "/post/slug":
+    get:
+      parameters:
+        - name: slug
+          description: "Stem of filename"
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: lang
+          in: query
+          description: "Lang"
+          schema:
+            type: string
+            default: ja
+      responses:
+        "200":
+          description: "Get posts by slug and lang"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  "/posts":
+    get:
+      summary: get all posts
+      parameters:
+        - name: lang
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - update_at
+              - created_at
+      responses:
+        "200":
+          description: "All posts"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  "/search":
+    description: "Search posts with tanitivy query language"
+    get:
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: "Searched posts"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+components:
+  schemas:
+    Post:
+      type: object
+      properties:
+        uuid:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        lang:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date
+        update_at:
+          type: string
+          format: date
