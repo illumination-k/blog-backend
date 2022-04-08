@@ -1,0 +1,2 @@
+[default-coverage]
+exclude-files = ["src/main.rs", "src/test_utility.rs", "src/args.rs", "src/server/mod.rs"]

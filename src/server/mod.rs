@@ -12,6 +12,7 @@ mod route;
 pub struct CategoryList(Vec<String>);
 pub struct TagList(Vec<String>);
 
+#[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 pub async fn main(
     host: String,
