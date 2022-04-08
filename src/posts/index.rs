@@ -32,12 +32,12 @@ pub fn build(glob_pattern: &str, index: &Index) -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use tantivy::query::{Query, AllQuery};
-    use tempdir::TempDir;
     use glob::glob;
+    use tantivy::query::{AllQuery, Query};
+    use tempdir::TempDir;
 
     use super::*;
-    use crate::text_engine::{index::read_or_build_index, schema::build_schema, query::get_all};
+    use crate::text_engine::{index::read_or_build_index, query::get_all, schema::build_schema};
 
     #[test]
     fn test_build() -> Result<()> {
@@ -46,7 +46,7 @@ mod test {
 
         let schema = build_schema();
         let index = read_or_build_index(schema, index_dir.path(), true)?;
-        
+
         build(glob_pattern, &index)?;
         let q: Box<dyn Query> = Box::new(AllQuery {});
         let docs = get_all(&q, &index, None)?;

@@ -1,16 +1,20 @@
 extern crate rand;
 use std::path::Path;
 
+use crate::{
+    datetime::DateTimeWithFormat,
+    posts::{frontmatter::FrontMatter, Lang, Post},
+    text_engine::{index::read_or_build_index, query::put, schema::build_schema},
+};
 use anyhow::Result;
-use tantivy::Index;
-use crate::{posts::{frontmatter::FrontMatter, Lang, Post}, datetime::DateTimeWithFormat, text_engine::{schema::build_schema, index::read_or_build_index, query::put}};
 use rand::prelude::IteratorRandom;
 use strum::IntoEnumIterator;
+use tantivy::Index;
 
-const TITLE_LENGTH: usize = 10;
-const DESCRIPTION_LENGTH: usize = 100;
-const BODY_LENGHT: usize = 1000;
-const TAG_CATEGORIES_LENGTH: usize = 10;
+pub const TITLE_LENGTH: usize = 10;
+pub const DESCRIPTION_LENGTH: usize = 100;
+pub const BODY_LENGHT: usize = 1000;
+pub const TAG_CATEGORIES_LENGTH: usize = 10;
 
 #[cfg(not(tarpaulin_include))]
 fn rand_string(base: &str, size: usize) -> String {
@@ -23,27 +27,27 @@ fn rand_string(base: &str, size: usize) -> String {
 }
 
 #[cfg(not(tarpaulin_include))]
-fn rand_alpahbet(size: usize) -> String {
+pub fn rand_alpahbet(size: usize) -> String {
     let base = "abcdefghijklmnopqrstuvwstuxyz";
 
     rand_string(base, size)
 }
 
 #[cfg(not(tarpaulin_include))]
-fn rand_japanase(size: usize) -> String {
+pub fn rand_japanase(size: usize) -> String {
     let base = "いろはにほへとちりぬるをわがよたれぞつねならむabcdefghijk!?*()&^%=+-/";
 
     rand_string(base, size)
 }
 
 #[cfg(not(tarpaulin_include))]
-fn rand_lang() -> Lang {
+pub fn rand_lang() -> Lang {
     let mut rng = &mut rand::thread_rng();
     Lang::iter().choose(&mut rng).unwrap()
 }
 
 #[cfg(not(tarpaulin_include))]
-fn rand_tags(size: usize) -> Option<Vec<String>> {    
+pub fn rand_tags(size: usize) -> Option<Vec<String>> {
     let flag = rand::random::<bool>();
 
     if flag {
@@ -81,12 +85,11 @@ pub fn rand_post() -> Post {
 pub fn build_random_posts_index(post_size: usize, index_path: &Path) -> Result<(Vec<Post>, Index)> {
     let posts: Vec<Post> = (0..post_size).map(|_| rand_post()).collect();
     let schema = build_schema();
-    let index = read_or_build_index(schema,  index_path, true)?;
+    let index = read_or_build_index(schema, index_path, true)?;
     let mut index_writer = index.writer(100_000_000)?;
     for post in posts.iter() {
         put(post, &index, &mut index_writer)?;
     }
-    
+
     Ok((posts, index))
 }
-

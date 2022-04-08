@@ -82,6 +82,11 @@ impl Post {
     }
 
     #[allow(dead_code)]
+    pub fn body_mut(&mut self) -> &mut String {
+        &mut self.body
+    }
+
+    #[allow(dead_code)]
     pub fn category(&self) -> String {
         self.matter.category()
     }
