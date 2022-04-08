@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "openapi.yml"
+      - ".github/workflows/redoc.yml"
 
 jobs:
   redoc:
