@@ -100,6 +100,11 @@ impl Post {
     pub fn tags(&self) -> Option<Vec<String>> {
         self.matter.tags()
     }
+    
+    #[allow(dead_code)]
+    pub fn description(&self) -> String {
+        self.matter.description()
+    }
 
     pub fn title(&self) -> String {
         self.matter.title()

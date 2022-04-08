@@ -109,3 +109,32 @@ pub struct PostResponse {
     pub created_at: String,
     pub updated_at: String,
 }
+
+impl PartialEq<Post> for PostResponse {
+    fn eq(&self, other: &Post) -> bool {
+        let mut flag = self.uuid == other.uuid() && 
+            self.slug == other.slug() &&
+            self.title == other.title() &&
+            self.description == other.description() &&
+            self.category == other.category() &&
+            self.lang == other.lang().to_string() &&
+            self.body == other.body();
+        
+        // if post tags is None, postresponse is empty vec
+        if let Some(tags) = other.tags() {
+            flag = flag && tags == self.tags;
+        } else {
+            flag = flag && self.tags.is_empty()
+        }
+
+        if let Some(created_at) = other.created_at() {
+            flag = flag && created_at.to_string() == self.created_at;
+        }
+
+        if let Some(updated_at) = other.updated_at() {
+            flag = flag && updated_at.to_string() == self.updated_at;
+        }
+
+        flag
+    }
+}
