@@ -156,3 +156,113 @@ async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
 
     HttpResponse::Ok().json(docs)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test_utility::*;
+    use actix_web::{dev::Service, http::StatusCode, test, web, App};
+    use tempdir::TempDir;
+
+    #[actix_web::test]
+    async fn test_posts_getall_empty() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let post_num = 5;
+        let (_, index) = build_random_posts_index(post_num, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_posts),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/posts").to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert_eq!(resp_posts.len(), post_num);
+    }
+
+    #[actix_web::test]
+    async fn test_posts_getall_lang() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let post_num = 5;
+        let (posts, index) = build_random_posts_index(post_num, temp_dir.path()).unwrap();
+        let lang_posts_num = posts.iter().filter(|x| x.lang() == Lang::En).count();
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri("/posts?lang=en")
+            .to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert_eq!(lang_posts_num, resp_posts.len());
+    }
+
+    #[actix_web::test]
+    async fn test_posts_getall_fullparams() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri("/posts?category=a&tag=a&lang=en&order_by=created_at&order=desc")
+            .to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let _: Vec<PostResponse> = test::read_body_json(resp).await;
+    }
+
+    #[actix_web::test]
+    async fn test_get_by_uuid() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_post_by_id),
+        )
+        .await;
+
+        for post in posts.iter() {
+            let path = format!("/post/uuid/{}", post.uuid());
+            let req = test::TestRequest::get().uri(&path).to_request();
+            let resp = app.call(req).await.unwrap();
+
+            assert_eq!(resp.response().status(), StatusCode::OK);
+            let p: PostResponse = test::read_body_json(resp).await;
+            assert_eq!(p.uuid, post.uuid())
+        }
+    }
+}
