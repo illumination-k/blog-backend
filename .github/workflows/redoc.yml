@@ -1,4 +1,4 @@
-name: update redoc
+name: API Documentation
 
 on:
   push:
