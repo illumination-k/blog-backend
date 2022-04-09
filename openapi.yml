@@ -2,7 +2,7 @@ openapi: 3.0.0
 
 info:
   title: "smrak API"
-  version: "v0.1.6"
+  version: "v0.1.9"
 
 paths:
   "/":
