@@ -157,28 +157,50 @@ components:
       properties:
         uuid:
           type: string
+          example: "fabe88b5-a35e-4954-bfd8-b5e88c585e7a"
+          required:
+            - "true"
         slug:
           type: string
+          example: "file_stem"
+          required:
+            - "true"
         title:
           type: string
+          required:
+            - "true"
         description:
           type: string
+          required:
+            - "true"
         category:
           type: string
+          required:
+            - "true"
         lang:
           type: string
+          required:
+            - "true"
           enum:
             - ja
             - en
         tags:
           type: array
+          required:
+            - "true"
           items:
             type: string
         body:
           type: string
+          required:
+            - "true"
         created_at:
           type: string
+          required:
+            - "true"
           format: date
         update_at:
           type: string
+          required:
+            - "true"
           format: date

@@ -3,11 +3,11 @@
 [![codecov](https://codecov.io/gh/illumination-k/smark/branch/main/graph/badge.svg?token=3I8IEVXO2Q)](https://codecov.io/gh/illumination-k/smark)
 [![API Documetation](https://github.com/illumination-k/smark/actions/workflows/redoc.yml/badge.svg)](https://illumination-k.github.io/smark/)
 
-`smark` is the tool to serve markdown as API server.
+`smark` is the tool to serve markdown as the API server.
 
-This tool provides API to get markdown posts based on tanitivy (full-text search engine implemented by Rust).
+This tool provides API to get markdown documents from files based on [tantivy](https://github.com/quickwit-oss/tantivy) (A full-text search engine in Rust) and [lindera](https://github.com/lindera-morphology/lindera) (A morphological analysis library in Rust).
 
-Please see [API Documetation](https://illumination-k.github.io/smark/) for more details.
+Please see [API Documetation](https://illumination-k.github.io/smark/) for more details. `smark` also provides [openapi schema](./openapi.yml).
 
 ## Install
 
