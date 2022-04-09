@@ -159,7 +159,9 @@ mod test {
     use super::*;
     use crate::test_utility::*;
     use actix_web::{dev::Service, http::StatusCode, test, web, App};
+    use anyhow::Result;
     use tempdir::TempDir;
+    use urlencoding::encode;
 
     #[actix_web::test]
     async fn test_posts_getall_empty() {
@@ -208,6 +210,38 @@ mod test {
         assert_eq!(resp.response().status(), StatusCode::OK);
         let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
         assert_eq!(lang_posts_num, resp_posts.len());
+    }
+
+    #[actix_web::test]
+    async fn test_posts_getall_categories() -> Result<()> {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))?;
+
+        let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+        let category = posts[0].category();
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_posts),
+        )
+        .await;
+
+        // encode is required
+        let uri = format!("/posts?category='{}'", encode(&category));
+
+        let req = test::TestRequest::get().uri(&uri).to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let posts: Vec<PostResponse> = test::read_body_json(resp).await;
+
+        for post in posts.iter() {
+            assert_eq!(post.category, category);
+        }
+
+        Ok(())
     }
 
     #[actix_web::test]
