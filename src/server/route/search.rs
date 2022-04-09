@@ -67,9 +67,9 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
 
 #[cfg(test)]
 mod test_search {
-    use crate::test_utility::*;
     use crate::text_engine::index::read_or_build_index;
     use crate::text_engine::schema::build_schema;
+    use crate::{test_utility::*, text_engine::query::put};
 
     use super::*;
 
@@ -101,10 +101,18 @@ mod test_search {
 
     #[actix_web::test]
     async fn test_posts_search_basic() {
-        let index_dir = "test/index";
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (mut posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
 
-        let schema = build_schema();
-        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
+        let target_body = posts[0].body_mut();
+        *target_body = "検索でこのポストにヒットする".to_string();
+
+        let mut index_writer = index.writer(100000000).unwrap();
+        let doc = put(&posts[0], &index, &mut index_writer).unwrap();
 
         let app = test::init_service(
             App::new()
@@ -119,9 +127,9 @@ mod test_search {
         let resp = app.call(req).await.unwrap();
 
         assert_eq!(resp.response().status(), StatusCode::OK);
-        let posts: Vec<PostResponse> = test::read_body_json(resp).await;
-        assert_eq!(posts.len(), 1);
-        assert_eq!(posts[0].uuid, "efa047c1-f104-4d91-aa86-fbb624f66e22");
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert_eq!(resp_posts.len(), 1);
+        assert_eq!(resp_posts[0].uuid, posts[0].uuid());
     }
 
     #[actix_web::test]

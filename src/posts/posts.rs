@@ -252,6 +252,14 @@ impl Post {
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
 
         if let Some(raw_text) = self.raw_text() {
+            let body_raw_text = extract_text(&self.body);
+
+            let raw_text = if raw_text == body_raw_text {
+                raw_text
+            } else {
+                body_raw_text
+            };
+
             doc.add_text(fb.get_field(PostField::RawText), raw_text);
         }
 
