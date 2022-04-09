@@ -235,7 +235,7 @@ mod test {
         .await;
 
         // encode is required
-        let uri = format!("/posts?category='{}'", encode(&category));
+        let uri = format!("/posts?category={}", encode(&category));
 
         let req = test::TestRequest::get().uri(&uri).to_request();
         let resp = app.call(req).await.unwrap();
