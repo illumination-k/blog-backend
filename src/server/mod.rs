@@ -30,6 +30,8 @@ pub async fn main(
 
     let static_uri = "/public";
     eprintln!("static uri: {}", static_uri);
+    std::env::set_var("RUST_LOG", "actix_web=info");
+    pretty_env_logger::init_timed();
 
     let schema = build_schema();
     let index = read_or_build_index(schema, &index_dir, false)?;
@@ -40,6 +42,7 @@ pub async fn main(
                 .app_data(web::Data::new(index.clone()))
                 .app_data(web::Data::new(CategoryList(categories.clone())))
                 .app_data(web::Data::new(TagList(tags.clone())))
+                .wrap(middleware::Logger::default())
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default().allowed_origin(cors_origin))
                 .service(route::openapi::get_openapi_schema)
@@ -56,6 +59,7 @@ pub async fn main(
                 .app_data(web::Data::new(index.clone()))
                 .app_data(web::Data::new(CategoryList(categories.clone())))
                 .app_data(web::Data::new(TagList(tags.clone())))
+                .wrap(middleware::Logger::default())
                 .wrap(middleware::Compress::default())
                 .wrap(Cors::default())
                 .service(route::openapi::get_openapi_schema)
