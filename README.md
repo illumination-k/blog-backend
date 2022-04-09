@@ -48,7 +48,7 @@ You completed all steps! Let's run server!
 smark run --index-dir index --static-dir images
 ```
 
-### From source
+## From source
 
 You can use cross to build.
 
