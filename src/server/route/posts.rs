@@ -2,6 +2,7 @@ use actix_web::{get, web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use tantivy::{
+    collector::Count,
     query::{AllQuery, BooleanQuery, Occur, Query, TermQuery},
     schema::IndexRecordOption,
     Index, Term,
@@ -59,7 +60,10 @@ async fn get_post_by_slug_and_lang(index: web::Data<Index>, req: HttpRequest) ->
         },
         Err(e) => {
             error!("{:?}", e);
-            return HttpResponse::InternalServerError().body("Internal Server Error");
+            return HttpResponse::NotFound().body(format!(
+                "slug: '{}' lang: '{}' is not found!",
+                &params.slug, &lang
+            ));
         }
     };
 
@@ -117,6 +121,39 @@ impl GetPostsQueryParams {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct Counter {
+    count: usize,
+}
+
+#[get("/post/count")]
+async fn count_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
+    let index = index.into_inner();
+    let schema = index.schema();
+    let fb = FieldGetter::new(&schema);
+    let params = match web::Query::<GetPostsQueryParams>::from_query(req.query_string()) {
+        Ok(p) => p,
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    };
+
+    let queries = params.to_queries(&fb);
+    let query: Box<dyn Query> = if queries.is_empty() {
+        Box::new(AllQuery {})
+    } else {
+        Box::new(BooleanQuery::new(queries))
+    };
+
+    let counter = Count {};
+    let searcher = index.reader().expect("Not error here").searcher();
+    let count = searcher.search(&query, &counter);
+
+    if let Ok(count) = count {
+        HttpResponse::Ok().json(Counter { count })
+    } else {
+        HttpResponse::InternalServerError().body("Internal server error\n")
+    }
+}
+
 #[get("/posts")]
 async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
     let index = index.into_inner();
@@ -141,7 +178,8 @@ async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
         Ok(_docs) => _docs,
         Err(e) => {
             error!("{:?}", e);
-            return HttpResponse::InternalServerError().body("Internal Server Error");
+            let empty: Vec<String> = Vec::new();
+            return HttpResponse::Ok().json(empty);
         }
     };
 
@@ -168,8 +206,43 @@ mod test {
     use tempdir::TempDir;
     use urlencoding::encode;
 
+    async fn test_count_and_get_posts(
+        query_params: &str,
+        index: &Index,
+    ) -> Result<(Counter, Vec<PostResponse>)> {
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_posts)
+                .service(count_posts),
+        )
+        .await;
+
+        let posts_resp = {
+            let req = test::TestRequest::get()
+                .uri(&format!("/posts{}", query_params))
+                .to_request();
+            let resp = app.call(req).await.unwrap();
+            assert_eq!(resp.response().status(), StatusCode::OK);
+
+            test::read_body_json(resp).await
+        };
+
+        let counter = {
+            let req = test::TestRequest::get()
+                .uri(&format!("/post/count{}", query_params))
+                .to_request();
+            let resp = app.call(req).await.unwrap();
+            assert_eq!(resp.response().status(), StatusCode::OK);
+
+            test::read_body_json(resp).await
+        };
+
+        Ok((counter, posts_resp))
+    }
+
     #[actix_web::test]
-    async fn test_posts_getall_empty() {
+    async fn test_posts_count_get_no_params() {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
@@ -178,23 +251,14 @@ mod test {
         let post_num = 5;
         let (_, index) = build_random_posts_index(post_num, temp_dir.path()).unwrap();
 
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(get_posts),
-        )
-        .await;
-        let req = test::TestRequest::get().uri("/posts").to_request();
+        let (count, posts) = test_count_and_get_posts("", &index).await.unwrap();
 
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
-        assert_eq!(resp_posts.len(), post_num);
+        assert_eq!(posts.len(), post_num);
+        assert_eq!(count.count, post_num);
     }
 
     #[actix_web::test]
-    async fn test_posts_getall_lang() {
+    async fn test_posts_count_get_lang() {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
@@ -203,22 +267,17 @@ mod test {
         let post_num = 5;
         let (posts, index) = build_random_posts_index(post_num, temp_dir.path()).unwrap();
         let lang_posts_num = posts.iter().filter(|x| x.lang() == Lang::En).count();
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(get_posts),
-        )
-        .await;
-        let req = test::TestRequest::get().uri("/posts?lang=en").to_request();
-        let resp = app.call(req).await.unwrap();
+        let (count, posts) =
+            test_count_and_get_posts(&format!("?lang={}", Lang::En.as_str()), &index)
+                .await
+                .unwrap();
 
-        assert_eq!(resp.response().status(), StatusCode::OK);
-        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
-        assert_eq!(lang_posts_num, resp_posts.len());
+        assert_eq!(posts.len(), lang_posts_num);
+        assert_eq!(count.count, lang_posts_num);
     }
 
     #[actix_web::test]
-    async fn test_posts_getall_categories() -> Result<()> {
+    async fn test_posts_count_get_categories() -> Result<()> {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
@@ -226,32 +285,24 @@ mod test {
 
         let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
         let category = posts[0].category();
-        let category_post_count = posts.iter().filter(|p| p.category() == category).count();
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(get_posts),
-        )
-        .await;
+        let category_post_num = posts.iter().filter(|p| p.category() == category).count();
+        let (count, posts) =
+            test_count_and_get_posts(&format!("?category={}", encode(&category)), &index)
+                .await
+                .unwrap();
 
-        // encode is required
-        let uri = format!("/posts?category={}", encode(&category));
-
-        let req = test::TestRequest::get().uri(&uri).to_request();
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-        let posts: Vec<PostResponse> = test::read_body_json(resp).await;
-        assert_eq!(posts.len(), category_post_count);
         for post in posts.iter() {
             assert_eq!(post.category, category);
         }
+
+        assert_eq!(posts.len(), category_post_num);
+        assert_eq!(count.count, category_post_num);
 
         Ok(())
     }
 
     #[actix_web::test]
-    async fn test_posts_getall_fullparams() {
+    async fn test_posts_count_get_not_found() {
         let temp_dir = TempDir::new(&format!(
             "temp_rand_index_{}",
             uuid::Uuid::new_v4().to_string()
@@ -259,19 +310,14 @@ mod test {
         .unwrap();
         let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
 
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(get_posts),
+        let (count, posts) = test_count_and_get_posts(
+            "?category=a&tag=a&lang=en&order_by=created_at&order=desc",
+            &index,
         )
-        .await;
-        let req = test::TestRequest::get()
-            .uri("/posts?category=a&tag=a&lang=en&order_by=created_at&order=desc")
-            .to_request();
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-        let _: Vec<PostResponse> = test::read_body_json(resp).await;
+        .await
+        .unwrap();
+        assert!(posts.is_empty());
+        assert_eq!(count.count, 0);
     }
 
     #[actix_web::test]
@@ -299,5 +345,26 @@ mod test {
             let p: PostResponse = test::read_body_json(resp).await;
             assert_eq!(p.uuid, post.uuid())
         }
+    }
+
+    #[actix_web::test]
+    async fn test_get_by_uuid_not_found() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+
+        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(get_post_by_id),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/post/uuid/a").to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::NOT_FOUND);
     }
 }

@@ -43,14 +43,13 @@ fn main() -> Result<()> {
         None => set_var("RUST_LOG", "warn"),
     };
 
-    pretty_env_logger::init_timed();
-
     match &opt.subcommand {
         SubCommands::Prep {
             input,
             index_dir,
             rebuild,
         } => {
+            pretty_env_logger::init_timed();
             let glob_pattern = format!("{}/**/*.md", input.display());
             eprintln!("---- Prep Parmeters  ----");
             eprintln!(
@@ -99,6 +98,7 @@ fn main() -> Result<()> {
             updated_at,
             write,
         } => {
+            pretty_env_logger::init_timed();
             eprintln!("input: {:?}", input);
             let text = read_string(input)?;
             let (matter, body) = match find_frontmatter_block(&text) {
@@ -140,6 +140,7 @@ fn main() -> Result<()> {
             };
         }
         SubCommands::Dump { outdir, index_dir } => {
+            pretty_env_logger::init_timed();
             let index = Index::open_in_dir(index_dir)?;
             if !outdir.exists() {
                 fs::create_dir(outdir)?;

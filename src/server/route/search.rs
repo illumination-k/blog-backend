@@ -67,18 +67,19 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
 
 #[cfg(test)]
 mod test_search {
-    use crate::test_utility::*;
     use crate::text_engine::index::read_or_build_index;
     use crate::text_engine::schema::build_schema;
+    use crate::{test_utility::*, text_engine::query::put};
 
     use super::*;
 
     use actix_web::{dev::Service, http::StatusCode, test, web, App};
     use std::path::Path;
     use tempdir::TempDir;
+    use urlencoding::encode;
 
     #[actix_web::test]
-    async fn test_posts_search_empty() {
+    async fn test_posts_search_no_params() {
         let index_dir = "test/index";
 
         let schema = build_schema();
@@ -96,6 +97,68 @@ mod test_search {
 
         assert_eq!(resp.response().status(), StatusCode::OK);
         let _: Vec<PostResponse> = test::read_body_json(resp).await;
+    }
+
+    #[actix_web::test]
+    async fn test_posts_search_basic() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (mut posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let target_body = posts[0].body_mut();
+        *target_body = "検索でこのポストにヒットする".to_string();
+
+        let mut index_writer = index.writer(100000000).unwrap();
+        let doc = put(&posts[0], &index, &mut index_writer).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri(&format!("/search?query={}", encode("検索")))
+            .to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert_eq!(resp_posts.len(), 1);
+        assert_eq!(resp_posts[0].uuid, posts[0].uuid());
+    }
+
+    #[actix_web::test]
+    async fn test_posts_seach_not_found() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri(&format!(
+                "/search?query={}",
+                uuid::Uuid::new_v4().to_string()
+            ))
+            .to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert!(resp_posts.is_empty());
     }
 
     #[actix_web::test]

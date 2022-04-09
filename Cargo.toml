@@ -1,6 +1,6 @@
 [package]
 name = "smark"
-version = "0.1.6"
+version = "0.1.9"
 authors = ["illumination-k <illumination.k.27@gmail.com>"]
 edition = "2021"
 

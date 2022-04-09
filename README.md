@@ -11,7 +11,7 @@ Please see [API Documetation](https://illumination-k.github.io/smark/) for more 
 
 ## Install
 
-You can use release binary from release page.
+You can use release binary from release page or `cargo install smark`
 
 ### Prepare Posts
 

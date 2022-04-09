@@ -2,7 +2,7 @@ openapi: 3.0.0
 
 info:
   title: "smrak API"
-  version: "v0.1.6"
+  version: "v0.1.9"
 
 paths:
   "/":
@@ -86,6 +86,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/Post"
 
+  "/post/count":
+    get:
+      parameters:
+        - name: lang
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - update_at
+              - created_at
+      responses:
+        "200":
+          description: "All posts"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Counter"
   "/posts":
     get:
       summary: get all posts
@@ -152,55 +188,56 @@ paths:
 
 components:
   schemas:
+    Counter:
+      type: object
+      required:
+        - "count"
+      properties:
+        count:
+          type: number
+          example: 10
+          required:
+            - "true"
     Post:
       type: object
+      required:
+        - "uuid"
+        - "slug"
+        - "title"
+        - "description"
+        - "category"
+        - "lang"
+        - "tags"
+        - "body"
+        - "created_at"
+        - "updated_at"
       properties:
         uuid:
           type: string
           example: "fabe88b5-a35e-4954-bfd8-b5e88c585e7a"
-          required:
-            - "true"
         slug:
           type: string
           example: "file_stem"
-          required:
-            - "true"
         title:
           type: string
-          required:
-            - "true"
         description:
           type: string
-          required:
-            - "true"
         category:
           type: string
-          required:
-            - "true"
         lang:
           type: string
-          required:
-            - "true"
           enum:
             - ja
             - en
         tags:
           type: array
-          required:
-            - "true"
           items:
             type: string
         body:
           type: string
-          required:
-            - "true"
         created_at:
           type: string
-          required:
-            - "true"
           format: date
-        update_at:
+        updated_at:
           type: string
-          required:
-            - "true"
           format: date
