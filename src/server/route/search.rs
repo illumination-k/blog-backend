@@ -76,9 +76,10 @@ mod test_search {
     use actix_web::{dev::Service, http::StatusCode, test, web, App};
     use std::path::Path;
     use tempdir::TempDir;
+    use urlencoding::encode;
 
     #[actix_web::test]
-    async fn test_posts_search_empty() {
+    async fn test_posts_search_no_params() {
         let index_dir = "test/index";
 
         let schema = build_schema();
@@ -96,6 +97,60 @@ mod test_search {
 
         assert_eq!(resp.response().status(), StatusCode::OK);
         let _: Vec<PostResponse> = test::read_body_json(resp).await;
+    }
+
+    #[actix_web::test]
+    async fn test_posts_search_basic() {
+        let index_dir = "test/index";
+
+        let schema = build_schema();
+        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri(&format!("/search?query={}", encode("検索")))
+            .to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].uuid, "efa047c1-f104-4d91-aa86-fbb624f66e22");
+    }
+
+    #[actix_web::test]
+    async fn test_posts_seach_not_found() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+        let (_, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(index.clone()))
+                .service(search_posts),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri(&format!(
+                "/search?query={}",
+                uuid::Uuid::new_v4().to_string()
+            ))
+            .to_request();
+
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.response().status(), StatusCode::OK);
+        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        assert!(resp_posts.is_empty());
     }
 
     #[actix_web::test]
