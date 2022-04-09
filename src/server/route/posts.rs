@@ -84,21 +84,26 @@ pub struct GetPostsQueryParams {
 
 impl GetPostsQueryParams {
     pub fn to_queries(&self, fb: &FieldGetter) -> Vec<(Occur, Box<dyn Query>)> {
+        let field_iter = [PostField::Lang, PostField::Category, PostField::Tags].iter();
+
         [
             self.lang.to_owned(),
             self.category.to_owned(),
             self.tag.to_owned(),
         ]
         .into_iter()
-        .flatten()
-        .zip(&[PostField::Lang, PostField::Category, PostField::Tags])
-        .map(|(val, &pf)| {
-            let field = fb.get_field(pf);
-            let q: Box<dyn Query> = Box::new(TermQuery::new(
-                Term::from_field_text(field, &val),
-                IndexRecordOption::Basic,
-            ));
-            (Occur::Must, q)
+        .zip(field_iter)
+        .flat_map(|(val, &pf)| {
+            if let Some(val) = val {
+                let field = fb.get_field(pf);
+                let q: Box<dyn Query> = Box::new(TermQuery::new(
+                    Term::from_field_text(field, &val),
+                    IndexRecordOption::Basic,
+                ));
+                Some((Occur::Must, q))
+            } else {
+                None
+            }
         })
         .collect()
     }
@@ -221,6 +226,7 @@ mod test {
 
         let (posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
         let category = posts[0].category();
+        let category_post_count = posts.iter().filter(|p| p.category() == category).count();
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(index.clone()))
@@ -236,7 +242,7 @@ mod test {
 
         assert_eq!(resp.response().status(), StatusCode::OK);
         let posts: Vec<PostResponse> = test::read_body_json(resp).await;
-
+        assert_eq!(posts.len(), category_post_count);
         for post in posts.iter() {
             assert_eq!(post.category, category);
         }
