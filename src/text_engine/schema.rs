@@ -1,4 +1,4 @@
-use crate::posts::Lang;
+use crate::{datetime::DateTimeWithFormat, posts::Lang};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -205,24 +205,32 @@ impl<'a> FieldGetter<'a> {
         }
     }
 
-    pub fn get_date_as_str(&self, doc: &Document, field: PostField) -> Result<String> {
+    pub fn get_date_with_format(
+        &self,
+        doc: &Document,
+        field: PostField,
+    ) -> Result<DateTimeWithFormat> {
         match field {
             PostField::CreatedAt => {
                 let datetime = self.get_date(doc, field)?;
                 let datetime_format = self.get_text(doc, PostField::CreatedAtFormat)?;
 
                 let dfmt = DateTimeFormat::from(datetime_format.as_str());
-                Ok(dfmt.format(datetime))
+                Ok(DateTimeWithFormat::new(datetime, dfmt))
             }
             PostField::UpdatedAt => {
                 let datetime = self.get_date(doc, field)?;
                 let datetime_format = self.get_text(doc, PostField::UpdatedAtFormat)?;
 
                 let dfmt = DateTimeFormat::from(datetime_format.as_str());
-                Ok(dfmt.format(datetime))
+                Ok(DateTimeWithFormat::new(datetime, dfmt))
             }
             _ => Err(anyhow!("{} is not date field", field.as_str())),
         }
+    }
+
+    pub fn get_date_as_str(&self, doc: &Document, field: PostField) -> Result<String> {
+        Ok(self.get_date_with_format(doc, field)?.to_string())
     }
 
     pub fn get_tags(&self, doc: &Document) -> Result<Vec<String>> {

@@ -82,6 +82,10 @@ impl FrontMatter {
         self.updated_at.to_owned()
     }
 
+    pub fn updated_at_mut(&mut self) -> &mut Option<DateTimeWithFormat> {
+        &mut self.updated_at
+    }
+
     /// **CAUSION!**  
     /// This function do not return strict equal.
     /// If updated_at and created_at in `self.matter` is `None`,

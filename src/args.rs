@@ -34,6 +34,11 @@ pub enum SubCommands {
         input: PathBuf,
         #[structopt(long = "index-dir", about = "path to tanitivy index directory")]
         index_dir: PathBuf,
+        #[structopt(
+            long = "skip-update-date",
+            about = "Skip automatic update of updated_at date"
+        )]
+        skip_update_date: bool,
         #[structopt(long = "rebuild")]
         rebuild: bool,
     },

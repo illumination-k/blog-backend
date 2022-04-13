@@ -132,7 +132,12 @@ pub fn get_by_slug_with_lang(slug: &str, lang: &str, index: &Index) -> Result<Do
     Ok(searcher.doc(doc_address)?)
 }
 
-pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result<Option<Document>> {
+pub fn put(
+    post: &Post,
+    index: &Index,
+    index_writer: &mut IndexWriter,
+    skip_update_date: bool,
+) -> Result<Option<Document>> {
     let now = Utc::now();
 
     let schema = index.schema();
@@ -155,11 +160,15 @@ pub fn put(post: &Post, index: &Index, index_writer: &mut IndexWriter) -> Result
                 DateTimeWithFormat::new(datetime, DateTimeFormat::from(format.as_str()))
             };
 
-            let updated_at_format =
-                DateTimeFormat::from(fb.get_text(&doc, PostField::UpdatedAtFormat)?.as_str());
-            let now_with_format = DateTimeWithFormat::new(now, updated_at_format);
+            let updated_at = if skip_update_date {
+                post.updated_at().unwrap()
+            } else {
+                let updated_at_format =
+                    DateTimeFormat::from(fb.get_text(&doc, PostField::UpdatedAtFormat)?.as_str());
+                DateTimeWithFormat::new(now, updated_at_format)
+            };
 
-            let new_doc = post.to_doc(&schema, &created_at, &now_with_format);
+            let new_doc = post.to_doc(&schema, &created_at, &updated_at);
             index_writer.delete_term(Term::from_field_text(uuid_field, &post.uuid()));
             index_writer.add_document(new_doc.clone());
             new_doc
@@ -324,11 +333,13 @@ mod test {
             read_or_build_index(schema.clone(), &temp_dir.path().join("put"), false).unwrap();
         let mut index_writer = index.writer(100_000_000).unwrap();
         let post = rand_post();
-        let doc = put(&post, &index, &mut index_writer).unwrap().unwrap();
+        let doc = put(&post, &index, &mut index_writer, false)
+            .unwrap()
+            .unwrap();
         let post_doc = Post::from_doc(&doc, &schema).unwrap();
         assert!(post.equal_from_doc(&post_doc));
 
-        let none = put(&post_doc, &index, &mut index_writer).unwrap();
+        let none = put(&post_doc, &index, &mut index_writer, false).unwrap();
         assert!(none.is_none());
     }
 
@@ -367,14 +378,14 @@ mod test {
         let mut index_writer = index.writer(100_000_000)?;
 
         fn test_put(post: &mut Post, index: &Index, index_writer: &mut IndexWriter) -> Result<()> {
-            let doc = put(&post, &index, index_writer)?;
+            let doc = put(&post, &index, index_writer, false)?;
             assert!(doc.is_some());
             let prev_post = Post::from_doc(&doc.unwrap(), &index.schema())?;
 
             let body = post.body_mut();
             *body = rand_japanase(BODY_LENGHT - 10);
 
-            let doc = put(&post, &index, index_writer)?;
+            let doc = put(&post, &index, index_writer, false)?;
             assert!(doc.is_some());
             let updated_post = Post::from_doc(&doc.unwrap(), &index.schema())?;
 

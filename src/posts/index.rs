@@ -3,24 +3,28 @@ use tantivy::Index;
 
 use super::utils::get_all_posts;
 use crate::io;
-use crate::posts::dump::dump_doc;
+use crate::posts::dump::dump_post;
 use crate::text_engine::query::put;
+use crate::text_engine::schema::FieldGetter;
 
-pub fn build(glob_pattern: &str, index: &Index) -> Result<()> {
+pub fn build(glob_pattern: &str, index: &Index, skip_update_date: bool) -> Result<()> {
     let schema = index.schema();
+    let fg = FieldGetter::new(&schema);
     let mut index_writer = index.writer(100_000_000)?;
-    let posts = get_all_posts(glob_pattern)?;
+    let mut posts = get_all_posts(glob_pattern)?;
 
     eprintln!("\n--- Start Preperation ---");
     eprintln!("- Find {} posts", posts.len());
     let mut update_post_count = 0;
 
-    for (path, post) in posts.iter() {
-        let doc = put(post, index, &mut index_writer)?;
+    for (path, post) in posts.iter_mut() {
+        let doc = put(post, index, &mut index_writer, skip_update_date)?;
         if let Some(doc) = doc {
             update_post_count += 1;
-
-            let (_, new_markdown) = dump_doc(&doc, &schema)?;
+            let updated_at =
+                fg.get_date_with_format(&doc, crate::text_engine::schema::PostField::UpdatedAt)?;
+            *post.updated_at_mut() = Some(updated_at);
+            let (_, new_markdown) = dump_post(post)?;
             io::write_string(path, &new_markdown)?;
         }
     }
@@ -47,7 +51,7 @@ mod test {
         let schema = build_schema();
         let index = read_or_build_index(schema, index_dir.path(), true)?;
 
-        build(glob_pattern, &index)?;
+        build(glob_pattern, &index, false)?;
         let q: Box<dyn Query> = Box::new(AllQuery {});
         let docs = get_all(&q, &index, None)?;
 

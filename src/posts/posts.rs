@@ -7,6 +7,7 @@ use tantivy::schema::*;
 
 use super::extract_text::extract_text;
 use super::frontmatter::{split_frontmatter_and_content, FrontMatter};
+use super::remove_comments;
 
 use crate::datetime::{DateTimeFormat, DateTimeWithFormat};
 use crate::io::read_string;
@@ -122,6 +123,10 @@ impl Post {
         self.matter.updated_at()
     }
 
+    pub fn updated_at_mut(&mut self) -> &mut Option<DateTimeWithFormat> {
+        self.matter.updated_at_mut()
+    }
+
     pub fn raw_text(&self) -> Option<String> {
         self.raw_text.clone()
     }
@@ -164,7 +169,7 @@ impl Post {
     }
 
     pub fn new(slug: String, matter: FrontMatter, body: String) -> Self {
-        let raw_text = extract_text(&body);
+        let raw_text = extract_text(&body).expect("No error because body should be valid");
         Self {
             slug,
             matter,
@@ -178,12 +183,14 @@ impl Post {
 
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
-        let raw_text = extract_text(body);
+        let matter = frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path));
+        let body = remove_comments(body);
+        let raw_text = Some(extract_text(&body)?);
         Ok(Self {
             slug,
-            matter: frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path)),
-            body: body.to_string(),
-            raw_text: Some(raw_text),
+            matter,
+            body,
+            raw_text,
         })
     }
 
@@ -252,7 +259,7 @@ impl Post {
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
 
         if let Some(raw_text) = self.raw_text() {
-            let body_raw_text = extract_text(&self.body);
+            let body_raw_text = extract_text(&self.body).unwrap();
 
             let raw_text = if raw_text == body_raw_text {
                 raw_text
