@@ -101,20 +101,6 @@ paths:
           in: query
           schema:
             type: string
-        - name: order
-          in: query
-          schema:
-            type: string
-            enum:
-              - asc
-              - desc
-        - name: order_by
-          in: query
-          schema:
-            type: string
-            enum:
-              - update_at
-              - created_at
       responses:
         "200":
           description: "All posts"
