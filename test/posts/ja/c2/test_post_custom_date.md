@@ -5,7 +5,7 @@ description: custom date
 lang: ja
 category: c2
 created_at: 2022/01/01
-updated_at: "2022-04-13T02:39:54+00:00"
+updated_at: "2022-04-13T02:39:14+00:00"
 ---
 
 検索されてほしい

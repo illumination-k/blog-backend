@@ -67,36 +67,46 @@ async fn search_posts(index: web::Data<Index>, req: HttpRequest) -> HttpResponse
 
 #[cfg(test)]
 mod test_search {
-    use crate::text_engine::index::read_or_build_index;
-    use crate::text_engine::schema::build_schema;
     use crate::{test_utility::*, text_engine::query::put};
 
     use super::*;
 
     use actix_web::{dev::Service, http::StatusCode, test, web, App};
-    use std::path::Path;
+    use anyhow::Result;
     use tempdir::TempDir;
     use urlencoding::encode;
 
-    #[actix_web::test]
-    async fn test_posts_search_no_params() {
-        let index_dir = "test/index";
-
-        let schema = build_schema();
-        let index = read_or_build_index(schema, &Path::new(index_dir), false).unwrap();
-
+    async fn test_search(index: Index, query_params: Option<&str>) -> Result<Vec<PostResponse>> {
+        let uri = if let Some(query_params) = query_params {
+            format!("/search?{}", query_params)
+        } else {
+            "/search".to_string()
+        };
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(index.clone()))
                 .service(search_posts),
         )
         .await;
-        let req = test::TestRequest::get().uri("/search").to_request();
+        let req = test::TestRequest::get().uri(&uri).to_request();
 
         let resp = app.call(req).await.unwrap();
-
         assert_eq!(resp.response().status(), StatusCode::OK);
-        let _: Vec<PostResponse> = test::read_body_json(resp).await;
+        Ok(test::read_body_json(resp).await)
+    }
+
+    #[actix_web::test]
+    async fn test_posts_search_no_params() {
+        let temp_dir = TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap();
+
+        let post_size = 5;
+        let (_, index) = build_random_posts_index(post_size, temp_dir.path()).unwrap();
+        let resp_posts = test_search(index, None).await.unwrap();
+        assert_eq!(resp_posts.len(), post_size);
     }
 
     #[actix_web::test]
@@ -114,20 +124,9 @@ mod test_search {
         let mut index_writer = index.writer(100000000).unwrap();
         let _ = put(&posts[0], &index, &mut index_writer, false).unwrap();
 
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(index.clone()))
-                .service(search_posts),
-        )
-        .await;
-        let req = test::TestRequest::get()
-            .uri(&format!("/search?query={}", encode("検索")))
-            .to_request();
-
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.response().status(), StatusCode::OK);
-        let resp_posts: Vec<PostResponse> = test::read_body_json(resp).await;
+        let resp_posts = test_search(index, Some(&format!("query={}", encode("検索"))))
+            .await
+            .unwrap();
         assert_eq!(resp_posts.len(), 1);
         assert_eq!(resp_posts[0].uuid, posts[0].uuid());
     }

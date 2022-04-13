@@ -27,7 +27,7 @@ impl TokenSink for Sink {
 
 fn extract_inner_text(html_values: &[String]) -> Result<Vec<String>> {
     let mut html = BufferQueue::new();
-    for value in html_values.into_iter() {
+    for value in html_values.iter() {
         let chunk = unsafe { ByteTendril::from_byte_slice_without_validating(value.as_bytes()) };
 
         let buf = match chunk.try_reinterpret() {
@@ -43,15 +43,12 @@ fn extract_inner_text(html_values: &[String]) -> Result<Vec<String>> {
     tokenizer.end();
 
     for token in tokenizer.sink.0.iter() {
-        match token {
-            CharacterTokens(tendri) => {
-                let inner = tendri.to_string().trim().to_string();
-                if inner.is_empty() {
-                    continue;
-                }
-                s.push(inner);
+        if let CharacterTokens(tendri) = token {
+            let inner = tendri.to_string().trim().to_string();
+            if inner.is_empty() {
+                continue;
             }
-            _ => {}
+            s.push(inner);
         }
     }
 
@@ -69,7 +66,7 @@ pub fn extract_text(markdown_text: &str) -> Result<String> {
         match e {
             Event::Text(text) => {
                 if state == State::InHtml {
-                    let inner_values = extract_inner_text(&mut html_values)?;
+                    let inner_values = extract_inner_text(&html_values)?;
                     s.extend(inner_values.into_iter());
                     html_values = Vec::new();
                     state = State::Ready;
@@ -88,7 +85,7 @@ pub fn extract_text(markdown_text: &str) -> Result<String> {
     }
 
     if !html_values.is_empty() {
-        let inner_values = extract_inner_text(&mut html_values)?;
+        let inner_values = extract_inner_text(&html_values)?;
         s.extend(inner_values.into_iter());
     }
 
