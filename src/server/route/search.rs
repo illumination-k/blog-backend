@@ -112,7 +112,7 @@ mod test_search {
         *target_body = "検索でこのポストにヒットする".to_string();
 
         let mut index_writer = index.writer(100000000).unwrap();
-        let _ = put(&posts[0], &index, &mut index_writer).unwrap();
+        let _ = put(&posts[0], &index, &mut index_writer, false).unwrap();
 
         let app = test::init_service(
             App::new()

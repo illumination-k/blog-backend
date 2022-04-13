@@ -47,6 +47,7 @@ fn main() -> Result<()> {
         SubCommands::Prep {
             input,
             index_dir,
+            skip_update_date,
             rebuild,
         } => {
             pretty_env_logger::init_timed();
@@ -59,7 +60,7 @@ fn main() -> Result<()> {
             let schema = build_schema();
             let index = read_or_build_index(schema, index_dir, *rebuild)?;
 
-            posts::index::build(&glob_pattern, &index)?;
+            posts::index::build(&glob_pattern, &index, *skip_update_date)?;
         }
 
         SubCommands::Run {

@@ -6,7 +6,7 @@ use crate::io;
 use crate::posts::dump::dump_doc;
 use crate::text_engine::query::put;
 
-pub fn build(glob_pattern: &str, index: &Index) -> Result<()> {
+pub fn build(glob_pattern: &str, index: &Index, skip_update_date: bool) -> Result<()> {
     let schema = index.schema();
     let mut index_writer = index.writer(100_000_000)?;
     let posts = get_all_posts(glob_pattern)?;
@@ -16,7 +16,7 @@ pub fn build(glob_pattern: &str, index: &Index) -> Result<()> {
     let mut update_post_count = 0;
 
     for (path, post) in posts.iter() {
-        let doc = put(post, index, &mut index_writer)?;
+        let doc = put(post, index, &mut index_writer, skip_update_date)?;
         if let Some(doc) = doc {
             update_post_count += 1;
 
@@ -47,7 +47,7 @@ mod test {
         let schema = build_schema();
         let index = read_or_build_index(schema, index_dir.path(), true)?;
 
-        build(glob_pattern, &index)?;
+        build(glob_pattern, &index, false)?;
         let q: Box<dyn Query> = Box::new(AllQuery {});
         let docs = get_all(&q, &index, None)?;
 

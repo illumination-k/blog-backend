@@ -89,7 +89,7 @@ pub fn build_random_posts_index(post_size: usize, index_path: &Path) -> Result<(
     let index = read_or_build_index(schema, index_path, true)?;
     let mut index_writer = index.writer(100_000_000)?;
     for post in posts.iter() {
-        put(post, &index, &mut index_writer)?;
+        put(post, &index, &mut index_writer, false)?;
     }
 
     Ok((posts, index))
