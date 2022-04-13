@@ -164,7 +164,7 @@ impl Post {
     }
 
     pub fn new(slug: String, matter: FrontMatter, body: String) -> Self {
-        let raw_text = extract_text(&body);
+        let raw_text = extract_text(&body).expect("No error because body should be valid");
         Self {
             slug,
             matter,
@@ -178,7 +178,7 @@ impl Post {
 
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
-        let raw_text = extract_text(body);
+        let raw_text = extract_text(body)?;
         Ok(Self {
             slug,
             matter: frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path)),
@@ -252,7 +252,7 @@ impl Post {
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
 
         if let Some(raw_text) = self.raw_text() {
-            let body_raw_text = extract_text(&self.body);
+            let body_raw_text = extract_text(&self.body).unwrap();
 
             let raw_text = if raw_text == body_raw_text {
                 raw_text
