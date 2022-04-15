@@ -9,14 +9,11 @@ pub fn remove_comments(text: &str) -> String {
     let mut state = State::Ready;
 
     let chars: Vec<char> = text.chars().collect();
-    if chars.len() < 2 {
-        return text.to_string();
-    }
 
     for (i, &c) in chars.iter().enumerate() {
         match state {
             State::Ready => {
-                if i < chars.len() - 4 {
+                if i + 4 < chars.len() {
                     let check_chars = &chars[i..i + 4];
                     if check_chars == ['<', '!', '-', '-'] {
                         state = State::InComment;
@@ -28,7 +25,7 @@ pub fn remove_comments(text: &str) -> String {
                 }
             }
             State::InComment => {
-                if i < chars.len() - 3 {
+                if i + 3 < chars.len() {
                     let check_chars = &chars[i..i + 3];
                     if check_chars == ['-', '-', '>'] {
                         state = State::EndComment { cur: 0 };
@@ -36,8 +33,8 @@ pub fn remove_comments(text: &str) -> String {
                 }
             }
             State::EndComment { cur } => {
-                if cur == 1 {
-                    if i < chars.len() - 1 {
+                if cur >= 1 {
+                    if i + 1 < chars.len() {
                         if !chars[i + 1].is_ascii_whitespace() {
                             state = State::Ready
                         } else {
@@ -46,8 +43,6 @@ pub fn remove_comments(text: &str) -> String {
                     } else {
                         state = State::Ready;
                     }
-                } else if cur == 2 {
-                    state = State::Ready;
                 } else {
                     state = State::EndComment { cur: cur + 1 }
                 }
@@ -61,6 +56,13 @@ pub fn remove_comments(text: &str) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_empty() {
+        let text = "";
+        let result = remove_comments(text);
+        assert_eq!(text.to_string(), result)
+    }
 
     #[test]
     fn test_no_comment() {
@@ -112,7 +114,7 @@ comment
 TEST
 "#;
         let result = remove_comments(text);
-        let expected = "# TEST\n\n\nTEST\n";
+        let expected = "# TEST\nTEST\n";
         assert_eq!(result, expected);
     }
 }
