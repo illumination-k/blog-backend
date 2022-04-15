@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 
 use tantivy::schema::*;
 
-use super::extract_text::extract_text;
+use super::extract_text;
 use super::frontmatter::{split_frontmatter_and_content, FrontMatter};
 use super::remove_comments;
 

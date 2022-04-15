@@ -182,18 +182,20 @@ fn get_str_from_yaml(doc: &Yaml, field: PostField) -> Result<String> {
     }
 }
 
-pub fn parse_date_with_format(date_string: &str) -> DateTimeWithFormat {
+pub fn parse_date_with_format(date_string: &str) -> Result<DateTimeWithFormat> {
     match parse_datetime(date_string, None) {
-        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
-        Err(e) => panic!("{}", e),
+        Ok((format, datetime)) => Ok(DateTimeWithFormat::new(datetime, format)),
+        Err(e) => Err(e),
     }
 }
 
-pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Option<DateTimeWithFormat> {
-    doc[key].as_str().map(|s| match parse_datetime(s, None) {
-        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
-        Err(e) => panic!("{}", e),
-    })
+pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Result<Option<DateTimeWithFormat>> {
+    doc[key]
+        .as_str()
+        .map_or(Ok(None), |s| match parse_datetime(s, None) {
+            Ok((format, datetime)) => Ok(Some(DateTimeWithFormat::new(datetime, format))),
+            Err(e) => Err(e),
+        })
 }
 
 fn get_tags_from_yaml(doc: &Yaml) -> Option<Vec<String>> {
@@ -256,13 +258,13 @@ pub fn replace_frontmatter(
     let created_at = if let Some(created_at) = created_at {
         Some(created_at.to_owned())
     } else {
-        parse_date_from_yaml(doc, "created_at")
+        parse_date_from_yaml(doc, "created_at")?
     };
 
     let updated_at = if let Some(updated_at) = updated_at {
         Some(updated_at.to_owned())
     } else {
-        parse_date_from_yaml(doc, "updated_at")
+        parse_date_from_yaml(doc, "updated_at")?
     };
 
     Ok(FrontMatter::new(
@@ -290,11 +292,11 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
     let lang = match &doc["lang"] {
         Yaml::BadValue => Lang::Ja,
         Yaml::String(s) => Lang::from_str(s)?,
-        _ => panic!("Unsupported lang type. Lang must be string"),
+        _ => return Err(anyhow!("Unsupported lang type. Lang must be string")),
     };
 
-    let created_at = parse_date_from_yaml(doc, "created_at");
-    let updated_at = parse_date_from_yaml(doc, "updated_at");
+    let created_at = parse_date_from_yaml(doc, "created_at")?;
+    let updated_at = parse_date_from_yaml(doc, "updated_at")?;
 
     Ok(FrontMatter::new(
         uuid,

@@ -108,13 +108,13 @@ fn main() -> Result<()> {
             };
 
             let created_at = Some(if let Some(created_at) = created_at {
-                parse_date_with_format(created_at)
+                parse_date_with_format(created_at)?
             } else {
                 DateTimeWithFormat::default()
             });
 
             let updated_at = Some(if let Some(updated_at) = updated_at {
-                parse_date_with_format(updated_at)
+                parse_date_with_format(updated_at)?
             } else {
                 DateTimeWithFormat::default()
             });

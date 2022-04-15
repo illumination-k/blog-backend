@@ -30,3 +30,32 @@ pub fn dump_doc(doc: &Document, schema: &Schema) -> Result<(String, String)> {
 
     dump_post(&post)
 }
+
+#[cfg(test)]
+mod test {
+    use crate::datetime::DateTimeWithFormat;
+
+    use super::*;
+
+    #[test]
+    fn test_dump_matter() {
+        let now = DateTimeWithFormat::default();
+        let matter = FrontMatter::new(
+            "uuid",
+            "title",
+            "description",
+            "category",
+            crate::posts::Lang::En,
+            None,
+            Some(now.clone()),
+            Some(now.clone()),
+        );
+
+        let out = dump_matter(&matter);
+        assert!(out.is_ok());
+        let out = out.unwrap();
+        let expected = format!("---\nuuid: uuid\ntitle: title\ndescription: description\nlang: en\ncategory: category\ncreated_at: \"{}\"\nupdated_at: \"{}\"\n---\n", now.to_string(), now.to_string());
+
+        assert_eq!(out, expected);
+    }
+}
