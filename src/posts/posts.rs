@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 
 use tantivy::schema::*;
 
-use super::extract_text::extract_text;
+use super::extract_text;
 use super::frontmatter::{split_frontmatter_and_content, FrontMatter};
 use super::remove_comments;
 
@@ -184,12 +184,11 @@ impl Post {
         let markdown_text = read_string(&path).unwrap();
         let (frontmatter, body) = split_frontmatter_and_content(&markdown_text);
         let matter = frontmatter.unwrap_or_else(|| panic!("{:?} does not have frontmatter.", path));
-        let body = remove_comments(body);
         let raw_text = Some(extract_text(&body)?);
         Ok(Self {
             slug,
             matter,
-            body,
+            body: body.to_string(),
             raw_text,
         })
     }
@@ -249,7 +248,6 @@ impl Post {
             (PostField::Slug, self.slug()),
             (PostField::Title, self.title()),
             (PostField::Description, self.matter.description()),
-            (PostField::Body, self.body()),
             (PostField::Lang, self.lang().as_str().to_string()),
             (PostField::Category, self.matter.category()),
             (PostField::CreatedAtFormat, created_at.format().to_string()),
@@ -257,6 +255,8 @@ impl Post {
         ]
         .into_iter()
         .for_each(|(pf, text)| doc.add_text(fb.get_field(pf), text));
+
+        doc.add_text(fb.get_field(PostField::Body), remove_comments(&self.body()));
 
         if let Some(raw_text) = self.raw_text() {
             let body_raw_text = extract_text(&self.body).unwrap();

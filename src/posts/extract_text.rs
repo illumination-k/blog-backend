@@ -144,6 +144,20 @@ summary
     }
 
     #[test]
+    fn text_only_html() -> Result<()> {
+        let text = r#"
+<summary>
+<detail>detail</detail>
+summary
+</summary>
+        "#;
+
+        let extracted = extract_text(&text)?;
+        assert_eq!(extracted, "detail\nsummary");
+        Ok(())
+    }
+
+    #[test]
     fn test_ignore_comment() -> Result<()> {
         let markdown_text = r#"
 <!-- comments -->

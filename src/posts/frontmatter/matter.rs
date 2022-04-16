@@ -1,13 +1,12 @@
 use anyhow::{anyhow, Result};
-use linked_hash_map::LinkedHashMap;
 use uuid::Uuid;
 use yaml_rust::{Yaml, YamlLoader};
 
-use crate::{
-    datetime::{parse_datetime, DateTimeWithFormat},
-    posts::Lang,
-    text_engine::schema::PostField,
+use super::yaml::{
+    get_or_fill_str_from_yaml, get_str_from_yaml, get_tags_from_yaml, matter_to_yaml,
+    parse_date_from_yaml,
 };
+use crate::{datetime::DateTimeWithFormat, posts::Lang, text_engine::schema::PostField};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FrontMatter {
@@ -54,6 +53,7 @@ impl FrontMatter {
     pub fn uuid(&self) -> String {
         self.uuid.clone()
     }
+
     pub fn title(&self) -> String {
         self.title.clone()
     }
@@ -102,124 +102,20 @@ impl FrontMatter {
     }
 
     pub fn to_yaml(&self) -> Yaml {
-        fn insert_to_yamlmap<S: ToString>(k: S, v: String, lm: &mut LinkedHashMap<Yaml, Yaml>) {
-            lm.insert(Yaml::String(k.to_string()), Yaml::String(v));
-        }
-
-        // To preserve order, we should use linked-hash-map
-        let map: LinkedHashMap<&str, String> = [
-            (PostField::Uuid.as_str(), self.uuid()),
-            (PostField::Title.as_str(), self.title()),
-            (PostField::Description.as_str(), self.description()),
-            (PostField::Lang.as_str(), self.lang.as_str().to_string()),
-            (PostField::Category.as_str(), self.category()),
-        ]
-        .into_iter()
-        .collect();
-
-        let opmap: LinkedHashMap<&str, Option<String>> = [
-            (
-                PostField::CreatedAt.as_str(),
-                self.created_at.to_owned().map(|c| c.to_string()),
-            ),
-            (
-                PostField::UpdatedAt.as_str(),
-                self.updated_at.to_owned().map(|u| u.to_string()),
-            ),
-        ]
-        .into_iter()
-        .collect();
-
-        let mut lm = LinkedHashMap::new();
-
-        // Preserve insert order
-        for (k, v) in map.into_iter() {
-            insert_to_yamlmap(k, v, &mut lm);
-        }
-
-        if let Some(tags) = self.tags() {
-            let tags = tags.into_iter().map(Yaml::String).collect();
-            lm.insert(
-                Yaml::String(PostField::Tags.as_str().to_string()),
-                Yaml::Array(tags),
-            );
-        }
-
-        for (k, v) in opmap.into_iter() {
-            if let Some(v) = v {
-                insert_to_yamlmap(k, v, &mut lm);
-            }
-        }
-
-        Yaml::Hash(lm)
+        matter_to_yaml(self)
     }
 }
 
-pub fn find_frontmatter_block(text: &str) -> Option<(usize, usize)> {
-    match text.starts_with("---\n") {
-        true => {
-            let slice_after_marker = &text[4..];
-            let fm_end = match slice_after_marker.find("---\n") {
-                Some(f) => f,
-                None => return None,
-            };
-
-            Some((0, fm_end + 2 * 4))
+#[cfg(test)]
+impl FrontMatter {
+    pub fn get_text(&self, field: PostField) -> String {
+        match field {
+            PostField::Uuid => self.uuid(),
+            PostField::Category => self.category(),
+            PostField::Title => self.title(),
+            PostField::Description => self.description(),
+            _ => panic!(),
         }
-        false => None,
-    }
-}
-
-fn get_str_from_yaml(doc: &Yaml, field: PostField) -> Result<String> {
-    let field_str = field.as_str();
-    match &doc[field_str] {
-        Yaml::String(s) => Ok(s.to_owned()),
-        Yaml::Integer(i) => Ok(i.to_string()),
-        _ => Err(anyhow!(format!(
-            "{} field is need in frontmatter",
-            field_str
-        ))),
-    }
-}
-
-pub fn parse_date_with_format(date_string: &str) -> DateTimeWithFormat {
-    match parse_datetime(date_string, None) {
-        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
-        Err(e) => panic!("{}", e),
-    }
-}
-
-pub fn parse_date_from_yaml(doc: &Yaml, key: &str) -> Option<DateTimeWithFormat> {
-    doc[key].as_str().map(|s| match parse_datetime(s, None) {
-        Ok((format, datetime)) => DateTimeWithFormat::new(datetime, format),
-        Err(e) => panic!("{}", e),
-    })
-}
-
-fn get_tags_from_yaml(doc: &Yaml) -> Option<Vec<String>> {
-    doc[PostField::Tags.as_str()].as_vec().map(|t| {
-        t.iter()
-            .map(|ss| match ss {
-                Yaml::Integer(i) => i.to_string(),
-                Yaml::String(s) => s.to_owned(),
-                _ => panic!("Unsupported tag type. Tags must be intger or string"),
-            })
-            .collect()
-    })
-}
-
-pub fn get_or_fill_str_from_yaml<S: ToString>(
-    doc: &Yaml,
-    field: PostField,
-    val: &Option<String>,
-    fill_val: S,
-) -> String {
-    if let Some(val) = val {
-        val.to_owned()
-    } else if let Ok(val) = get_str_from_yaml(doc, field) {
-        val
-    } else {
-        fill_val.to_string()
     }
 }
 
@@ -256,13 +152,13 @@ pub fn replace_frontmatter(
     let created_at = if let Some(created_at) = created_at {
         Some(created_at.to_owned())
     } else {
-        parse_date_from_yaml(doc, "created_at")
+        parse_date_from_yaml(doc, PostField::CreatedAt)?
     };
 
     let updated_at = if let Some(updated_at) = updated_at {
         Some(updated_at.to_owned())
     } else {
-        parse_date_from_yaml(doc, "updated_at")
+        parse_date_from_yaml(doc, PostField::UpdatedAt)?
     };
 
     Ok(FrontMatter::new(
@@ -287,14 +183,14 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
 
     let tags = get_tags_from_yaml(doc);
 
-    let lang = match &doc["lang"] {
+    let lang = match &doc[PostField::Lang.as_str()] {
         Yaml::BadValue => Lang::Ja,
         Yaml::String(s) => Lang::from_str(s)?,
-        _ => panic!("Unsupported lang type. Lang must be string"),
+        _ => return Err(anyhow!("Unsupported lang type. Lang must be string")),
     };
 
-    let created_at = parse_date_from_yaml(doc, "created_at");
-    let updated_at = parse_date_from_yaml(doc, "updated_at");
+    let created_at = parse_date_from_yaml(doc, PostField::CreatedAt)?;
+    let updated_at = parse_date_from_yaml(doc, PostField::UpdatedAt)?;
 
     Ok(FrontMatter::new(
         uuid,
@@ -306,6 +202,21 @@ pub fn parse_frontmatter(frontmatter: &str) -> Result<FrontMatter> {
         created_at,
         updated_at,
     ))
+}
+
+pub fn find_frontmatter_block(text: &str) -> Option<(usize, usize)> {
+    match text.starts_with("---\n") {
+        true => {
+            let slice_after_marker = &text[4..];
+            let fm_end = match slice_after_marker.find("---\n") {
+                Some(f) => f,
+                None => return None,
+            };
+
+            Some((0, fm_end + 2 * 4))
+        }
+        false => None,
+    }
 }
 
 pub fn split_frontmatter_and_content(text: &str) -> (Option<FrontMatter>, &str) {
