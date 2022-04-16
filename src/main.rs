@@ -21,7 +21,7 @@ use tantivy::Index;
 
 use datetime::DateTimeWithFormat;
 use posts::dump::{dump_doc, dump_post};
-use posts::frontmatter::{parse_date_with_format, replace_frontmatter};
+use posts::frontmatter::replace_frontmatter;
 
 use crate::args::{LogLevel, Opt, SubCommands};
 use crate::io::{read_string, write_string};
@@ -108,13 +108,13 @@ fn main() -> Result<()> {
             };
 
             let created_at = Some(if let Some(created_at) = created_at {
-                parse_date_with_format(created_at)?
+                DateTimeWithFormat::from_str(created_at)?
             } else {
                 DateTimeWithFormat::default()
             });
 
             let updated_at = Some(if let Some(updated_at) = updated_at {
-                parse_date_with_format(updated_at)?
+                DateTimeWithFormat::from_str(updated_at)?
             } else {
                 DateTimeWithFormat::default()
             });

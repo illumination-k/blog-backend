@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -62,8 +62,8 @@ pub fn get_tags_and_categories(index: &Index) -> Result<(Vec<String>, Vec<String
     let _docs = get_all(&q, index, None)?;
 
     if let Some(docs) = _docs {
-        let mut categories = HashSet::new();
-        let mut tags = HashSet::new();
+        let mut categories = BTreeSet::new();
+        let mut tags = BTreeSet::new();
 
         for doc in docs.iter() {
             let category = fg.get_text(doc, PostField::Category)?;
@@ -299,8 +299,8 @@ mod test {
 
         let (mut tags, mut categories) = get_tags_and_categories(&index)?;
 
-        let mut rand_tags = HashSet::new();
-        let mut rand_categories = HashSet::new();
+        let mut rand_tags = BTreeSet::new();
+        let mut rand_categories = BTreeSet::new();
 
         for post in posts.iter() {
             rand_categories.insert(post.category());

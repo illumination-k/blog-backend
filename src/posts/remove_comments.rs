@@ -65,6 +65,15 @@ mod test {
     }
 
     #[test]
+    fn test_limited() {
+        for i in 1..5 {
+            let text: String = std::iter::repeat('a').take(i).collect();
+            let result = remove_comments(&text);
+            assert_eq!(text, result);
+        }
+    }
+
+    #[test]
     fn test_no_comment() {
         let text = r#"
 # TEST

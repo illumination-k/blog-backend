@@ -118,6 +118,13 @@ impl DateTimeWithFormat {
     pub fn format(&self) -> DateTimeFormat {
         self.format.clone()
     }
+
+    pub fn from_str(date_string: &str) -> Result<Self> {
+        match parse_datetime(date_string, None) {
+            Ok((format, datetime)) => Ok(Self::new(datetime, format)),
+            Err(e) => Err(e),
+        }
+    }
 }
 
 impl ToString for DateTimeWithFormat {
