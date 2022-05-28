@@ -103,6 +103,11 @@ impl Post {
     }
 
     #[allow(dead_code)]
+    pub fn tags_mut(&mut self) -> &mut Option<Vec<String>> {
+        &mut self.matter.tags
+    }
+
+    #[allow(dead_code)]
     pub fn description(&self) -> String {
         self.matter.description()
     }

@@ -15,7 +15,7 @@ pub struct FrontMatter {
     description: String,
     lang: Lang,
     category: String,
-    tags: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
     created_at: Option<DateTimeWithFormat>,
     updated_at: Option<DateTimeWithFormat>,
 }

@@ -10,6 +10,7 @@ use tantivy::Index;
 use tantivy::tokenizer::LowerCaser;
 use tantivy::tokenizer::RawTokenizer;
 use tantivy::tokenizer::TextAnalyzer;
+use tantivy::tokenizer::WhitespaceTokenizer;
 use tantivy::Result;
 
 use crate::posts::Lang;
@@ -42,6 +43,9 @@ pub fn read_or_build_index(schema: Schema, index_dir: &Path, rebuild: bool) -> R
         mode: Mode::Decompose(Penalty::default()),
     };
 
+    index
+        .tokenizers()
+        .register("whitespace_tokenizer", WhitespaceTokenizer);
     index.tokenizers().register("raw_tokenizer", RawTokenizer);
     let tokenizer_name = Lang::Ja.tokenizer_name();
     let ja_tokenizer =

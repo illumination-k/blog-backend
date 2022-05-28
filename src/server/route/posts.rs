@@ -200,11 +200,19 @@ async fn get_posts(req: HttpRequest, index: web::Data<Index>) -> HttpResponse {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utility::*;
+    use crate::{test_utility::*, text_engine::query::put};
     use actix_web::{dev::Service, http::StatusCode, test, web, App};
     use anyhow::Result;
     use tempdir::TempDir;
     use urlencoding::encode;
+
+    fn uuid_tempdir() -> TempDir {
+        TempDir::new(&format!(
+            "temp_rand_index_{}",
+            uuid::Uuid::new_v4().to_string()
+        ))
+        .unwrap()
+    }
 
     async fn test_count_and_get_posts(
         query_params: &str,
@@ -299,6 +307,40 @@ mod test {
         assert_eq!(count.count, category_post_num);
 
         Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_posts_count_get_tags() {
+        let temp_dir = uuid_tempdir();
+
+        let (mut posts, index) = build_random_posts_index(5, temp_dir.path()).unwrap();
+        *posts[0].tags_mut() = Some(vec!["test0".to_string(), "test1".to_string()]);
+        *posts[1].tags_mut() = Some(vec![
+            "test1".to_string(),
+            "github-actions".to_string(),
+            "next.js".to_string(),
+        ]);
+        let mut index_writer = index.writer(100000000).unwrap();
+        put(&posts[0], &index, &mut index_writer, false).unwrap();
+        put(&posts[1], &index, &mut index_writer, false).unwrap();
+
+        let (count, _) = test_count_and_get_posts("?tag=test1", &index)
+            .await
+            .unwrap();
+
+        assert_eq!(count.count, 2);
+
+        let (count, _) = test_count_and_get_posts("?tag=github-actions", &index)
+            .await
+            .unwrap();
+
+        assert_eq!(count.count, 1);
+
+        let (count, _) = test_count_and_get_posts("?tag=next.js", &index)
+            .await
+            .unwrap();
+
+        assert_eq!(count.count, 1);
     }
 
     #[actix_web::test]
