@@ -341,10 +341,12 @@ pub fn build_schema() -> Schema {
 
     constructor.build_simple_text_fields(&[
         PostField::Body,
-        PostField::Tags,
         PostField::CreatedAtFormat,
         PostField::UpdatedAtFormat,
     ]);
+
+    constructor.build_custom_tokenizer_text_field("whitespace_tokenizer", &[PostField::Tags]);
+
     constructor.build_custom_tokenizer_text_field(
         "raw_tokenizer",
         &[
